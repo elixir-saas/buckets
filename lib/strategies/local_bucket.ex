@@ -2,7 +2,7 @@ defmodule Buckets.Strategies.LocalBucket do
   @behaviour Buckets.Bucket
 
   @impl true
-  def upload(%Buckets.Upload{} = upload) do
+  def upload(%Buckets.Upload{} = upload, _opts) do
     object_id = Ecto.UUID.generate()
     object_path = build_object_path(object_id, upload.filename)
     local_path = upload.path
@@ -20,7 +20,7 @@ defmodule Buckets.Strategies.LocalBucket do
   end
 
   @impl true
-  def download(object_id, filename) do
+  def download(object_id, filename, _opts) do
     File.read(build_object_path(object_id, filename))
   end
 
