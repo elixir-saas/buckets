@@ -4,16 +4,6 @@ defmodule Buckets do
   different cloud providers.
   """
 
-  def upload(upload, opts) do
-    {strategy, opts} = Keyword.pop!(opts, :strategy)
-    strategy.upload(Buckets.Upload.new(upload), opts)
-  end
-
-  def download(object_id, filename, opts) do
-    {strategy, opts} = Keyword.pop!(opts, :strategy)
-    strategy.download(object_id, filename, opts)
-  end
-
   defmodule Upload do
     alias Phoenix.LiveView, as: LV
 
@@ -42,22 +32,33 @@ defmodule Buckets do
     end
   end
 
-  defmodule Resource do
+  defmodule Object do
     @type t :: %__MODULE__{
             id: String.t(),
             filename: String.t(),
             content_type: String.t(),
+            object_url: String.t(),
             object_path: String.t()
           }
 
-    defstruct [:id, :filename, :content_type, :object_path]
+    defstruct [:id, :filename, :content_type, :object_url, :object_path]
   end
 
   defmodule Bucket do
     @callback upload(Buckets.Upload.t(), Keyword.t()) ::
-                {:ok, Buckets.Resources.t()} | {:error, term}
+                {:ok, Buckets.Object.t()} | {:error, term}
 
     @callback download(object_id :: String.t(), filename :: String.t(), Keyword.t()) ::
                 {:ok, binary}
+  end
+
+  def upload(%Buckets.Upload{} = upload, opts) do
+    {strategy, opts} = Keyword.pop!(opts, :strategy)
+    strategy.upload(upload, opts)
+  end
+
+  def download(object_id, filename, opts) do
+    {strategy, opts} = Keyword.pop!(opts, :strategy)
+    strategy.download(object_id, filename, opts)
   end
 end

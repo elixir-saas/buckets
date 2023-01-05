@@ -10,10 +10,11 @@ defmodule Buckets.Strategies.LocalBucket do
     with :ok <- File.mkdir_p(Path.dirname(object_path)),
          :ok <- File.cp(local_path, object_path) do
       {:ok,
-       %Buckets.Resource{
+       %Buckets.Object{
          id: object_id,
          filename: upload.filename,
          content_type: upload.content_type,
+         object_url: build_object_url(object_path),
          object_path: object_path
        }}
     end
@@ -22,6 +23,10 @@ defmodule Buckets.Strategies.LocalBucket do
   @impl true
   def download(object_id, filename, _opts) do
     File.read(build_object_path(object_id, filename))
+  end
+
+  defp build_object_url(object_path) do
+    "file://" <> object_path
   end
 
   defp build_object_path(document_id, filename) do
