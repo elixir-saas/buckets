@@ -25,6 +25,7 @@ defmodule Buckets.MixProject do
       {:ecto, "~> 3.9.4"},
       {:plug, "~> 1.14.0"},
       {:phoenix_live_view, "~> 0.18.3"},
+      {:jason, "~> 1.4"},
       {:google_api_storage, "~> 0.34"},
       {:gcs_signed_url, "~> 0.4"},
       {:goth, "~> 1.3"}
