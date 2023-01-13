@@ -34,31 +34,49 @@ defmodule Buckets do
 
   defmodule Object do
     @type t :: %__MODULE__{
-            id: String.t(),
             filename: String.t(),
             content_type: String.t(),
             object_url: String.t(),
             object_path: String.t()
           }
 
-    defstruct [:id, :filename, :content_type, :object_url, :object_path]
+    defstruct [:filename, :content_type, :object_url, :object_path]
   end
 
   defmodule Bucket do
-    @callback upload(Buckets.Upload.t(), Keyword.t()) ::
+    @type scope() :: binary() | %{id: binary()}
+
+    @callback put(Buckets.Upload.t(), scope(), Keyword.t()) ::
                 {:ok, Buckets.Object.t()} | {:error, term}
 
-    @callback download(object_id :: String.t(), filename :: String.t(), Keyword.t()) ::
+    @callback get(filename :: String.t(), scope(), Keyword.t()) ::
+                {:ok, binary}
+
+    @callback url(filename :: String.t(), scope(), Keyword.t()) ::
                 {:ok, binary}
   end
 
-  def upload(%Buckets.Upload{} = upload, opts) do
-    {strategy, opts} = Keyword.pop!(opts, :strategy)
-    strategy.upload(upload, opts)
+  defmodule Util do
+    def object_id(scope) when is_binary(scope), do: scope
+    def object_id(%{id: scope}) when is_binary(scope), do: scope
+
+    def build_object_path(path, object_id, filename) do
+      Path.join([path, object_id, filename]) |> String.trim_leading("/")
+    end
   end
 
-  def download(object_id, filename, opts) do
+  def put(%Buckets.Upload{} = upload, scope, opts) do
     {strategy, opts} = Keyword.pop!(opts, :strategy)
-    strategy.download(object_id, filename, opts)
+    strategy.put(upload, scope, opts)
+  end
+
+  def get(filename, scope, opts) do
+    {strategy, opts} = Keyword.pop!(opts, :strategy)
+    strategy.get(filename, scope, opts)
+  end
+
+  def url(filename, scope, opts) do
+    {strategy, opts} = Keyword.pop!(opts, :strategy)
+    strategy.url(filename, scope, opts)
   end
 end

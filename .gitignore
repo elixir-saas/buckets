@@ -26,3 +26,5 @@ buckets-*.tar
 /tmp/
 
 /.elixir_ls/
+
+/secret/
