@@ -11,17 +11,19 @@ defmodule Buckets do
             uuid: String.t(),
             path: String.t(),
             filename: String.t(),
-            content_type: String.t()
+            content_type: String.t(),
+            content_size: String.t()
           }
 
-    defstruct [:uuid, :path, :filename, :content_type]
+    defstruct [:uuid, :path, :filename, :content_type, :content_size]
 
     def new(%Plug.Upload{} = upload) do
       %Buckets.Upload{
         uuid: Ecto.UUID.generate(),
         path: upload.path,
         filename: upload.filename,
-        content_type: upload.content_type
+        content_type: upload.content_type,
+        content_size: size(upload.path)
       }
     end
 
@@ -30,8 +32,16 @@ defmodule Buckets do
         uuid: upload.uuid,
         path: meta[:path],
         filename: upload.client_name,
-        content_type: upload.client_type
+        content_type: upload.client_type,
+        content_size: if(p = meta[:path], do: size(p), else: upload.client_size)
       }
+    end
+
+    @spec size(String.t()) :: integer()
+    defp size(path) when is_binary(path) do
+      path
+      |> File.stat!()
+      |> then(& &1.size)
     end
   end
 
