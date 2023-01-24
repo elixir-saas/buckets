@@ -86,7 +86,8 @@ defmodule Buckets.Strategy.GCS do
         access_token: access_token
       }
 
-      GcsSignedUrl.generate_v4(oauth_config, bucket, object_path, expires: 60)
+      gcs_signed_url_opts = Keyword.get(opts, :gcs_signed_url, expires: 60)
+      GcsSignedUrl.generate_v4(oauth_config, bucket, object_path, gcs_signed_url_opts)
     else
       {:error, %Tesla.Env{body: body}} ->
         {:error, Jason.decode!(body)}
