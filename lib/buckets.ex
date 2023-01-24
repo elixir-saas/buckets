@@ -8,24 +8,27 @@ defmodule Buckets do
     alias Phoenix.LiveView, as: LV
 
     @type t :: %__MODULE__{
+            uuid: String.t(),
             path: String.t(),
             filename: String.t(),
             content_type: String.t()
           }
 
-    defstruct [:path, :filename, :content_type]
+    defstruct [:uuid, :path, :filename, :content_type]
 
     def new(%Plug.Upload{} = upload) do
       %Buckets.Upload{
+        uuid: Ecto.UUID.generate(),
         path: upload.path,
         filename: upload.filename,
         content_type: upload.content_type
       }
     end
 
-    def new({%LV.UploadEntry{done?: true} = upload, %{path: path}}) do
+    def new({%LV.UploadEntry{done?: true} = upload, meta}) do
       %Buckets.Upload{
-        path: path,
+        uuid: upload.uuid,
+        path: meta[:path],
         filename: upload.client_name,
         content_type: upload.client_type
       }
