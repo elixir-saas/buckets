@@ -22,9 +22,9 @@ defmodule Buckets.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ecto, "~> 3.9.4"},
+      {:ecto, "~> 3.11"},
       {:plug, "~> 1.14.0"},
-      {:phoenix_live_view, "~> 0.18.3"},
+      {:phoenix_live_view, "~> 0.20"},
       {:jason, "~> 1.4"},
       {:google_api_storage, "~> 0.34"},
       {:gcs_signed_url, "~> 0.4"},
