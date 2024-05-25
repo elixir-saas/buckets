@@ -23,7 +23,7 @@ defmodule Buckets.MixProject do
   defp deps do
     [
       {:ecto, "~> 3.11"},
-      {:plug, "~> 1.14.0"},
+      {:plug, "~> 1.14"},
       {:phoenix_live_view, "~> 0.20"},
       {:jason, "~> 1.4"},
       {:google_api_storage, "~> 0.34"},
