@@ -80,15 +80,27 @@ defmodule Buckets.Strategy.GCS do
     object_id = Util.object_id(scope)
     object_path = Util.build_object_path(path, object_id, filename)
 
-    with {:ok, %{token: access_token}} <- Goth.fetch(goth_server) do
-      oauth_config = %GcsSignedUrl.SignBlob.OAuthConfig{
-        service_account: service_account,
-        access_token: access_token
-      }
+    case Goth.fetch(goth_server) do
+      {:ok, %{token: access_token}} ->
+        oauth_config = %GcsSignedUrl.SignBlob.OAuthConfig{
+          service_account: service_account,
+          access_token: access_token
+        }
 
-      gcs_signed_url_opts = Keyword.get(opts, :gcs_signed_url, expires: 60)
-      GcsSignedUrl.generate_v4(oauth_config, bucket, object_path, gcs_signed_url_opts)
-    else
+        GcsSignedUrl.generate_v4(
+          oauth_config,
+          bucket,
+          object_path,
+          Keyword.get(opts, :gcs_signed_url, expires: 60)
+        )
+        |> case do
+          {:ok, signed_url} ->
+            {:ok, %Buckets.SignedURL{path: object_path, filename: filename, url: signed_url}}
+
+          {:error, reason} ->
+            {:error, reason}
+        end
+
       {:error, %Tesla.Env{body: body}} ->
         {:error, Jason.decode!(body)}
     end

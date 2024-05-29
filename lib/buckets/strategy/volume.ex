@@ -36,7 +36,17 @@ defmodule Buckets.Strategy.Volume do
   end
 
   @impl true
-  def url(_filename, _scope, _opts) do
-    raise "TODO"
+  def url(filename, scope, opts) do
+    bucket = Keyword.fetch!(opts, :bucket)
+    base_url = Keyword.fetch!(opts, :base_url)
+    path = Keyword.get(opts, :path, "")
+
+    object_id = Util.object_id(scope)
+    object_path = Util.build_object_path(path, object_id, filename)
+
+    query = %{path: object_path, bucket: bucket}
+    url = "#{base_url}/__buckets__/volume?#{URI.encode_query(query)}"
+
+    {:ok, %Buckets.SignedURL{path: object_path, filename: filename, url: url}}
   end
 end

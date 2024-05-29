@@ -66,7 +66,7 @@ defmodule Buckets do
                 {:ok, binary}
 
     @callback url(filename :: String.t(), scope(), Keyword.t()) ::
-                {:ok, binary}
+                {:ok, Buckets.SignedURL.t()}
   end
 
   defmodule Util do
