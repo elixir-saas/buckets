@@ -49,4 +49,16 @@ defmodule Buckets.Strategy.Volume do
 
     {:ok, %Buckets.SignedURL{path: object_path, filename: filename, url: url}}
   end
+
+  @impl true
+  def delete(filename, scope, opts) do
+    bucket = Keyword.fetch!(opts, :bucket)
+    path = Keyword.get(opts, :path, "")
+
+    object_id = Util.object_id(scope)
+    object_path = Util.build_object_path(path, object_id, filename)
+
+    File.rm(Path.join(bucket, object_path))
+    :ok
+  end
 end

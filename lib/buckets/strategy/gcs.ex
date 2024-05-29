@@ -106,6 +106,11 @@ defmodule Buckets.Strategy.GCS do
     end
   end
 
+  @impl true
+  def delete(_filename, _scope, _opts) do
+    raise "TODO"
+  end
+
   defp auth(goth_server) do
     with {:ok, token} <- Goth.fetch(goth_server) do
       {:ok, GoogleApi.Storage.V1.Connection.new(token.token)}

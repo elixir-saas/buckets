@@ -29,4 +29,28 @@ defmodule Buckets.Strategy.VolumeTest do
     assert {:ok, data} = Volume.get("simple.pdf", context.scope, @volume_opts)
     assert is_binary(data)
   end
+
+  test "url", context do
+    setup_bucket(context, @volume_opts)
+
+    expected_url =
+      "http://localhost:4000/__buckets__/volume" <>
+        "?path=test%2Fobjects%2F#{context.scope}%2Fsimple.pdf" <>
+        "&bucket=%2Fvar%2Ffolders%2Fd5%2Ff89z8ycn6vz_vlv1lbjzp9x00000gn%2FT%2F"
+
+    assert {:ok, %Buckets.SignedURL{url: ^expected_url}} =
+             Volume.url("simple.pdf", context.scope, @volume_opts)
+  end
+
+  test "delete", context do
+    %{object: object} = setup_bucket(context, @volume_opts)
+
+    "file://" <> file_path = object.object_url
+
+    assert File.exists?(file_path)
+
+    Buckets.delete("simple.pdf", context.scope, @volume_opts)
+
+    refute File.exists?(file_path)
+  end
 end

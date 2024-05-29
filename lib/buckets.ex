@@ -67,6 +67,9 @@ defmodule Buckets do
 
     @callback url(filename :: String.t(), scope(), Keyword.t()) ::
                 {:ok, Buckets.SignedURL.t()}
+
+    @callback delete(filename :: String.t(), scope(), Keyword.t()) ::
+                :ok
   end
 
   defmodule Util do
@@ -91,5 +94,10 @@ defmodule Buckets do
   def url(filename, scope, opts) do
     {strategy, opts} = Keyword.pop!(opts, :strategy)
     strategy.url(filename, scope, opts)
+  end
+
+  def delete(filename, scope, opts) do
+    {strategy, opts} = Keyword.pop!(opts, :strategy)
+    strategy.delete(filename, scope, opts)
   end
 end

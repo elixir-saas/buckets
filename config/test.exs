@@ -3,6 +3,7 @@ import Config
 config :buckets, :volume_opts,
   strategy: Buckets.Strategy.Volume,
   bucket: System.tmp_dir!(),
+  base_url: "http://localhost:4000",
   path: "test/objects"
 
 config :buckets, :gcs_opts,

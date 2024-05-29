@@ -6,6 +6,7 @@ defmodule Buckets.Setup do
   end
 
   def setup_bucket(context, opts) do
-    {:ok, _object} = Buckets.put(pdf_upload(), context.scope, opts)
+    {:ok, object} = Buckets.put(pdf_upload(), context.scope, opts)
+    %{object: object}
   end
 end
