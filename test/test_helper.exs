@@ -1,4 +1,4 @@
-ExUnit.start()
+ExUnit.start(exclude: [:live])
 
 sa_json =
   "secret/elixir-saas-82a32641f1b6.json"

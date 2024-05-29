@@ -10,6 +10,9 @@ defmodule Buckets.Strategy.GCSTest do
 
   setup :setup_scope
 
+  @tag :live
+  @tag :live_gcs
+
   test "gcs put", context do
     upload = pdf_upload()
 
@@ -22,12 +25,18 @@ defmodule Buckets.Strategy.GCSTest do
     assert object.object_url =~ "https://storage.googleapis.com/download/storage/v1/"
   end
 
+  @tag :live
+  @tag :live_gcs
+
   test "gcs get", context do
     setup_bucket(context, @gcs_opts)
 
     assert {:ok, data} = GCS.get("simple.pdf", context.scope, @gcs_opts)
     assert is_binary(data)
   end
+
+  @tag :live
+  @tag :live_gcs
 
   test "gcs url", context do
     setup_bucket(context, @gcs_opts)
