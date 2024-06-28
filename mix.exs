@@ -5,7 +5,7 @@ defmodule Buckets.MixProject do
     [
       app: :buckets,
       version: "0.1.0",
-      elixir: "~> 1.14",
+      elixir: "~> 1.17",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps()
@@ -23,13 +23,13 @@ defmodule Buckets.MixProject do
   defp deps do
     [
       {:ecto, "~> 3.11"},
-      {:plug, "~> 1.14"},
+      {:plug, "~> 1.16"},
       {:phoenix, "~> 1.7"},
       {:phoenix_live_view, "~> 0.20"},
       {:jason, "~> 1.4"},
       {:google_api_storage, "~> 0.34"},
       {:gcs_signed_url, "~> 0.4"},
-      {:goth, "~> 1.3"}
+      {:goth, "~> 1.4"}
     ]
   end
 
