@@ -31,8 +31,7 @@ defmodule Buckets.Strategy.GCS do
          object_path: object_path
        }}
     else
-      {:error, %Tesla.Env{body: body}} ->
-        {:error, Jason.decode!(body)}
+      error -> handle_error(error)
     end
   end
 
@@ -50,8 +49,7 @@ defmodule Buckets.Strategy.GCS do
            Objects.storage_objects_get(conn, bucket, object_path, [alt: "media"], []) do
       {:ok, data}
     else
-      {:error, %Tesla.Env{body: body}} ->
-        {:error, Jason.decode!(body)}
+      error -> handle_error(error)
     end
   end
 
@@ -101,19 +99,40 @@ defmodule Buckets.Strategy.GCS do
             {:error, reason}
         end
 
-      {:error, %Tesla.Env{body: body}} ->
-        {:error, Jason.decode!(body)}
+      error ->
+        handle_error(error)
     end
   end
 
   @impl true
-  def delete(_filename, _scope, _opts) do
-    raise "TODO"
+  def delete(filename, scope, opts) do
+    bucket = Keyword.fetch!(opts, :bucket)
+    path = Keyword.get(opts, :path, "")
+    goth_server = Keyword.fetch!(opts, :goth_server)
+
+    object_id = Util.object_id(scope)
+    object_path = Util.build_object_path(path, object_id, filename)
+
+    with {:ok, conn} <- auth(goth_server),
+         {:ok, %{status: 204}} <-
+           Objects.storage_objects_delete(conn, bucket, object_path) do
+      :ok
+    else
+      error -> handle_error(error)
+    end
   end
 
   defp auth(goth_server) do
     with {:ok, token} <- Goth.fetch(goth_server) do
       {:ok, GoogleApi.Storage.V1.Connection.new(token.token)}
     end
+  end
+
+  defp handle_error({:error, %Tesla.Env{status: 404, body: body}}) do
+    {:error, body}
+  end
+
+  defp handle_error({:error, %Tesla.Env{status: 500, body: body}}) do
+    {:error, Jason.decode!(body)}
   end
 end

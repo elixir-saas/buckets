@@ -45,6 +45,16 @@ defmodule Buckets.Strategy.GCSTest do
       "https://storage.googleapis.com/#{@gcs_opts[:bucket]}/test/objects/#{context.scope}/simple.pdf?"
 
     assert {:ok, data} = GCS.url("simple.pdf", context.scope, @gcs_opts)
-    assert data =~ expected_url
+    assert data.url =~ expected_url
+  end
+
+  @tag :live
+  @tag :live_gcs
+
+  test "delete", context do
+    %{object: object} = setup_bucket(context, @gcs_opts)
+
+    assert :ok = GCS.delete(object.filename, context.scope, @gcs_opts)
+    assert {:error, "No such object:" <> _} = GCS.get("simple.pdf", context.scope, @gcs_opts)
   end
 end
