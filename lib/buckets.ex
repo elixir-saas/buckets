@@ -23,7 +23,7 @@ defmodule Buckets do
         path: upload.path,
         filename: upload.filename,
         content_type: upload.content_type,
-        content_size: size(upload.path)
+        content_size: Buckets.Util.size(upload.path)
       }
     end
 
@@ -33,15 +33,8 @@ defmodule Buckets do
         path: meta[:path],
         filename: upload.client_name,
         content_type: upload.client_type,
-        content_size: if(p = meta[:path], do: size(p), else: upload.client_size)
+        content_size: if(p = meta[:path], do: Buckets.Util.size(p), else: upload.client_size)
       }
-    end
-
-    @spec size(String.t()) :: integer()
-    defp size(path) when is_binary(path) do
-      path
-      |> File.stat!()
-      |> then(& &1.size)
     end
   end
 
@@ -70,15 +63,6 @@ defmodule Buckets do
 
     @callback delete(filename :: String.t(), scope(), Keyword.t()) ::
                 :ok
-  end
-
-  defmodule Util do
-    def object_id(scope) when is_binary(scope), do: scope
-    def object_id(%{id: scope}) when is_binary(scope), do: scope
-
-    def build_object_path(path, object_id, filename) do
-      Path.join([path, object_id, filename]) |> String.trim_leading("/")
-    end
   end
 
   def put(%Buckets.Upload{} = upload, scope, opts) do

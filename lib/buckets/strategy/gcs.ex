@@ -9,11 +9,8 @@ defmodule Buckets.Strategy.GCS do
   @impl true
   def put(%Buckets.Upload{} = upload, scope, opts) do
     bucket = Keyword.fetch!(opts, :bucket)
-    path = Keyword.get(opts, :path, "")
     goth_server = Keyword.fetch!(opts, :goth_server)
-
-    object_id = Util.object_id(scope)
-    object_path = Util.build_object_path(path, object_id, upload.filename)
+    object_path = Util.build_object_path(upload.filename, scope, opts)
 
     metadata = %Object{
       name: object_path,
@@ -38,11 +35,8 @@ defmodule Buckets.Strategy.GCS do
   @impl true
   def get(filename, scope, opts) do
     bucket = Keyword.fetch!(opts, :bucket)
-    path = Keyword.get(opts, :path, "")
     goth_server = Keyword.fetch!(opts, :goth_server)
-
-    object_id = Util.object_id(scope)
-    object_path = Util.build_object_path(path, object_id, filename)
+    object_path = Util.build_object_path(filename, scope, opts)
 
     with {:ok, conn} <- auth(goth_server),
          {:ok, %{status: 200, body: data}} <-
@@ -71,12 +65,9 @@ defmodule Buckets.Strategy.GCS do
   @impl true
   def url(filename, scope, opts) do
     bucket = Keyword.fetch!(opts, :bucket)
-    path = Keyword.get(opts, :path, "")
     goth_server = Keyword.fetch!(opts, :goth_server)
     service_account = Keyword.fetch!(opts, :service_account)
-
-    object_id = Util.object_id(scope)
-    object_path = Util.build_object_path(path, object_id, filename)
+    object_path = Util.build_object_path(filename, scope, opts)
 
     case Goth.fetch(goth_server) do
       {:ok, %{token: access_token}} ->
@@ -107,11 +98,8 @@ defmodule Buckets.Strategy.GCS do
   @impl true
   def delete(filename, scope, opts) do
     bucket = Keyword.fetch!(opts, :bucket)
-    path = Keyword.get(opts, :path, "")
     goth_server = Keyword.fetch!(opts, :goth_server)
-
-    object_id = Util.object_id(scope)
-    object_path = Util.build_object_path(path, object_id, filename)
+    object_path = Util.build_object_path(filename, scope, opts)
 
     with {:ok, conn} <- auth(goth_server),
          {:ok, %{status: 204}} <-
