@@ -8,7 +8,20 @@ defmodule Buckets.MixProject do
       elixir: "~> 1.17",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
+      description: description(),
+      package: package(),
       deps: deps()
+    ]
+  end
+
+  defp description() do
+    "Cloud provider agnostic file storage."
+  end
+
+  defp package() do
+    [
+      licenses: ["Apache-2.0"],
+      links: %{}
     ]
   end
 
