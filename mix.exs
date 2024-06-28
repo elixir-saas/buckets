@@ -42,7 +42,8 @@ defmodule Buckets.MixProject do
       {:jason, "~> 1.4"},
       {:google_api_storage, "~> 0.34"},
       {:gcs_signed_url, "~> 0.4"},
-      {:goth, "~> 1.4"}
+      {:goth, "~> 1.4"},
+      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
     ]
   end
 
