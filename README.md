@@ -10,7 +10,7 @@ by adding `buckets` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:buckets, "~> 0.1.0"}
+    {:buckets, "~> 0.2.0"}
   ]
 end
 ```
