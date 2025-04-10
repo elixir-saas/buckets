@@ -35,6 +35,7 @@ defmodule Buckets.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:mime, "~> 2.0"},
       {:ecto, "~> 3.11"},
       {:plug, "~> 1.14"},
       {:phoenix, "~> 1.7"},

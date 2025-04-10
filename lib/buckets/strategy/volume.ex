@@ -21,6 +21,15 @@ defmodule Buckets.Strategy.Volume do
     end
   end
 
+  def put_v2(%Buckets.ObjectV2{data: {:file, path}} = object) do
+    target_path = Path.join(object.location.config[:bucket], object.location.path)
+
+    with :ok <- File.mkdir_p(Path.dirname(target_path)),
+         :ok <- File.cp(path, target_path) do
+      {:ok, %{}}
+    end
+  end
+
   @impl true
   def get(filename, scope, opts) do
     bucket = Keyword.fetch!(opts, :bucket)

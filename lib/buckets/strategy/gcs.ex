@@ -32,6 +32,24 @@ defmodule Buckets.Strategy.GCS do
     end
   end
 
+  def put_v2(%Buckets.ObjectV2{data: {:file, path}} = object) do
+    bucket = Keyword.fetch!(object.location.config, :bucket)
+    goth_server = Keyword.fetch!(object.location.config, :goth_server)
+
+    metadata = %Object{
+      name: object.location.path,
+      contentType: object.metadata.content_type
+    }
+
+    with {:ok, conn} <- auth(goth_server),
+         {:ok, object} <-
+           Objects.storage_objects_insert_simple(conn, bucket, "multipart", metadata, path) do
+      {:ok, object}
+    else
+      error -> handle_error(error)
+    end
+  end
+
   @impl true
   def get(filename, scope, opts) do
     bucket = Keyword.fetch!(opts, :bucket)
@@ -41,6 +59,19 @@ defmodule Buckets.Strategy.GCS do
     with {:ok, conn} <- auth(goth_server),
          {:ok, %{status: 200, body: data}} <-
            Objects.storage_objects_get(conn, bucket, object_path, [alt: "media"], []) do
+      {:ok, data}
+    else
+      error -> handle_error(error)
+    end
+  end
+
+  def get_v2(%Buckets.ObjectV2{} = object) do
+    bucket = Keyword.fetch!(object.location.config, :bucket)
+    goth_server = Keyword.fetch!(object.location.config, :goth_server)
+
+    with {:ok, conn} <- auth(goth_server),
+         {:ok, %{status: 200, body: data}} <-
+           Objects.storage_objects_get(conn, bucket, object.location.path, [alt: "media"], []) do
       {:ok, data}
     else
       error -> handle_error(error)
