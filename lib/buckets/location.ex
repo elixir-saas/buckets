@@ -1,4 +1,9 @@
 defmodule Buckets.Location do
+  @type t :: %__MODULE__{
+          path: String.t(),
+          config: Keyword.t()
+        }
+
   defstruct [:path, :config]
 
   defmodule NotConfigured do

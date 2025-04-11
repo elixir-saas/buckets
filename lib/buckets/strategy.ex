@@ -1,15 +1,13 @@
 defmodule Buckets.Strategy do
-  @type scope() :: binary() | %{id: binary()}
+  @callback put(Buckets.Object.t(), binary(), Keyword.t()) ::
+              {:ok, map()} | {:error, term()}
 
-  @callback put(Buckets.Upload.t(), scope(), Keyword.t()) ::
-              {:ok, Buckets.Object.t()} | {:error, term}
+  @callback get(binary(), Keyword.t()) ::
+              {:ok, binary()} | {:error, term()}
 
-  @callback get(filename :: String.t(), scope(), Keyword.t()) ::
-              {:ok, binary}
-
-  @callback url(filename :: String.t(), scope(), Keyword.t()) ::
+  @callback url(binary(), Keyword.t()) ::
               {:ok, Buckets.SignedURL.t()}
 
-  @callback delete(filename :: String.t(), scope(), Keyword.t()) ::
-              :ok
+  @callback delete(binary(), Keyword.t()) ::
+              {:ok, map()} | {:error, term()}
 end

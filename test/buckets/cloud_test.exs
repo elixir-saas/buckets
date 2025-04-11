@@ -2,11 +2,12 @@ defmodule Buckets.CloudTest do
   use ExUnit.Case
 
   describe "insert/2" do
+    @tag :live
+    @tag :live_gcs
+
     test "inserts path to google" do
       assert {:ok, %{stored?: true} = object} =
                TestCloud.insert("priv/simple.pdf", location: :google_cloud)
-
-      # IO.inspect(object)
 
       assert object.uuid != nil
       assert object.filename == "simple.pdf"
@@ -16,11 +17,11 @@ defmodule Buckets.CloudTest do
 
       object = %{object | data: nil}
 
-      {:ok, object} = TestCloud.load(object, to: {:tmp, "_scope"})
-      IO.inspect(object)
+      assert {:ok, object} = TestCloud.load(object, to: {:tmp, "_scope"})
+      assert {:file, _path} = object.data
 
-      {:ok, object} = TestCloud.load(object, force: true)
-      IO.inspect(object)
+      assert {:ok, object} = TestCloud.load(object, force: true)
+      assert {:data, _data} = object.data
     end
 
     test "inserts path" do
@@ -45,7 +46,7 @@ defmodule Buckets.CloudTest do
     end
 
     test "inserts object" do
-      object = Buckets.ObjectV2.from_file("priv/simple.pdf")
+      object = Buckets.Object.from_file("priv/simple.pdf")
 
       assert {:ok, %{stored?: true} = object} = TestCloud.insert(object)
 

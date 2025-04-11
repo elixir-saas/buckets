@@ -1,12 +1,12 @@
 defmodule Buckets.Cloud.Operations do
-  alias Buckets.ObjectV2
+  alias Buckets.Object
   alias Buckets.Location
 
   def insert(module, path, opts) when is_binary(path) do
-    insert(module, ObjectV2.from_file(path), opts)
+    insert(module, Object.from_file(path), opts)
   end
 
-  def insert(module, %ObjectV2{location: %Location.NotConfigured{}} = object, opts) do
+  def insert(module, %Object{location: %Location.NotConfigured{}} = object, opts) do
     {location, opts} = Keyword.pop(opts, :location, :default)
 
     location_config = module.config_for(location)
@@ -23,8 +23,8 @@ defmodule Buckets.Cloud.Operations do
     insert(module, %{object | location: location}, opts)
   end
 
-  def insert(_module, %ObjectV2{} = object, _opts) do
-    case object.location.config[:strategy].put_v2(object) do
+  def insert(_module, %Object{} = object, _opts) do
+    case Buckets.put(object, object.location.path, object.location.config) do
       {:ok, _meta} ->
         {:ok, %{object | stored?: true}}
 
@@ -33,8 +33,8 @@ defmodule Buckets.Cloud.Operations do
     end
   end
 
-  def delete(%ObjectV2{} = object) do
-    case object.location.config[:strategy].delete_v2(object.location) do
+  def delete(%Object{} = object) do
+    case Buckets.delete(object.location.path, object.location.config) do
       {:ok, _meta} ->
         {:ok, %{object | stored?: false}}
 
@@ -43,32 +43,32 @@ defmodule Buckets.Cloud.Operations do
     end
   end
 
-  def read(%ObjectV2{data: nil, location: %Location.NotConfigured{}}) do
+  def read(%Object{data: nil, location: %Location.NotConfigured{}}) do
     raise """
     Called `read/1` with an object that is missing a location.
     """
   end
 
-  def read(%ObjectV2{data: {:data, data}}) do
+  def read(%Object{data: {:data, data}}) do
     {:ok, data}
   end
 
-  def read(%ObjectV2{data: {:file, path}}) do
+  def read(%Object{data: {:file, path}}) do
     {:ok, File.read!(path)}
   end
 
-  def read(%ObjectV2{} = object) do
-    object.location.config[:strategy].get_v2(object)
+  def read(%Object{} = object) do
+    Buckets.get(object.location.path, object.location.config)
   end
 
-  def load(_module, %ObjectV2{location: %Location.NotConfigured{}}, _opts) do
+  def load(_module, %Object{location: %Location.NotConfigured{}}, _opts) do
     raise """
     Called `load/1` with an object that is missing a location.
     """
   end
 
-  def load(module, %ObjectV2{data: nil} = object, opts) do
-    case object.location.config[:strategy].get_v2(object) do
+  def load(module, %Object{data: nil} = object, opts) do
+    case Buckets.get(object.location.path, object.location.config) do
       {:ok, data} ->
         scoped_path = fn segments ->
           Path.join(segments ++ [object.uuid, object.filename])
@@ -94,22 +94,22 @@ defmodule Buckets.Cloud.Operations do
     end
   end
 
-  def load(module, %ObjectV2{} = object, opts) do
+  def load(module, %Object{} = object, opts) do
     case Keyword.pop(opts, :force) do
       {true, opts} -> load(module, unload(object), opts)
       _otherwise -> {:ok, object}
     end
   end
 
-  def unload(%ObjectV2{data: nil} = object) do
+  def unload(%Object{data: nil} = object) do
     object
   end
 
-  def unload(%ObjectV2{data: {:data, _data}} = object) do
+  def unload(%Object{data: {:data, _data}} = object) do
     %{object | data: nil}
   end
 
-  def unload(%ObjectV2{data: {:file, path}} = object) do
+  def unload(%Object{data: {:file, path}} = object) do
     File.rm!(path)
     %{object | data: nil}
   end
@@ -128,7 +128,7 @@ defmodule Buckets.Cloud.Operations do
     end
   end
 
-  def delete!(%ObjectV2{} = object) do
+  def delete!(%Object{} = object) do
     case delete(object) do
       {:ok, object} ->
         object
@@ -142,7 +142,7 @@ defmodule Buckets.Cloud.Operations do
     end
   end
 
-  def read!(%ObjectV2{} = object) do
+  def read!(%Object{} = object) do
     case read(object) do
       {:ok, data} ->
         data
@@ -156,7 +156,7 @@ defmodule Buckets.Cloud.Operations do
     end
   end
 
-  def load!(module, %ObjectV2{} = object, opts) do
+  def load!(module, %Object{} = object, opts) do
     case load(module, object, opts) do
       {:ok, object} ->
         object

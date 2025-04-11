@@ -1,15 +1,13 @@
 defmodule Buckets.Object do
   @type t :: %__MODULE__{
+          uuid: String.t(),
           filename: String.t(),
-          content_type: String.t(),
-          object_url: String.t(),
-          object_path: String.t()
+          data: nil | {:data, binary()} | {:file, String.t()},
+          metadata: map(),
+          location: Buckets.Location.t() | %Buckets.Location.NotConfigured{},
+          stored?: boolean()
         }
 
-  defstruct [:filename, :content_type, :object_url, :object_path]
-end
-
-defmodule Buckets.ObjectV2 do
   defstruct [:uuid, :filename, :data, :metadata, :location, :stored?]
 
   def read(%__MODULE__{} = object) do
@@ -27,7 +25,7 @@ defmodule Buckets.ObjectV2 do
 
       {:error, :not_loaded} ->
         raise """
-        Called `read!/1` with object that does not have file data loaded.
+        Called `read!/1` with object that does not have data loaded.
         """
 
       {:error, reason} ->
@@ -44,7 +42,7 @@ defmodule Buckets.ObjectV2 do
       uuid: uuid,
       filename: filename,
       data: nil,
-      metadata: Keyword.get(opts, :metadata),
+      metadata: Keyword.get(opts, :metadata, %{}),
       location: Keyword.get(opts, :location, %Buckets.Location.NotConfigured{}),
       stored?: Keyword.has_key?(opts, :location)
     }
@@ -63,7 +61,7 @@ defmodule Buckets.ObjectV2 do
       data: {:file, path},
       metadata: %{
         content_type: MIME.from_path(path),
-        content_size: File.stat!(path).size
+        content_size: Buckets.Util.size(path)
       },
       location: %Buckets.Location.NotConfigured{},
       stored?: false

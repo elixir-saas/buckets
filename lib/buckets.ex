@@ -4,23 +4,23 @@ defmodule Buckets do
   different cloud providers.
   """
 
-  def put(%Buckets.Upload{} = upload, scope, opts) do
-    {strategy, opts} = Keyword.pop!(opts, :strategy)
-    strategy.put(upload, scope, opts)
+  def put(%Buckets.Object{} = object, remote_path, config) do
+    {strategy, config} = Keyword.pop!(config, :strategy)
+    strategy.put(object, remote_path, config)
   end
 
-  def get(filename, scope, opts) do
-    {strategy, opts} = Keyword.pop!(opts, :strategy)
-    strategy.get(filename, scope, opts)
+  def get(remote_path, config) do
+    {strategy, config} = Keyword.pop!(config, :strategy)
+    strategy.get(remote_path, config)
   end
 
-  def url(filename, scope, opts) do
-    {strategy, opts} = Keyword.pop!(opts, :strategy)
-    strategy.url(filename, scope, opts)
+  def url(remote_path, config) do
+    {strategy, config} = Keyword.pop!(config, :strategy)
+    strategy.url(remote_path, config)
   end
 
-  def delete(filename, scope, opts) do
-    {strategy, opts} = Keyword.pop!(opts, :strategy)
-    strategy.delete(filename, scope, opts)
+  def delete(remote_path, config) do
+    {strategy, config} = Keyword.pop!(config, :strategy)
+    strategy.delete(remote_path, config)
   end
 end

@@ -1,77 +1,36 @@
 defmodule Buckets.Strategy.GCS do
   @behaviour Buckets.Strategy
 
-  alias Buckets.Util
-
   alias GoogleApi.Storage.V1.Api.Objects
   alias GoogleApi.Storage.V1.Model.Object
 
   @impl true
-  def put(%Buckets.Upload{} = upload, scope, opts) do
-    bucket = Keyword.fetch!(opts, :bucket)
-    goth_server = Keyword.fetch!(opts, :goth_server)
-    object_path = Util.build_object_path(upload.filename, scope, opts)
+  def put(%Buckets.Object{data: {:file, path}} = object, remote_path, config) do
+    bucket = Keyword.fetch!(config, :bucket)
+    goth_server = Keyword.fetch!(config, :goth_server)
 
     metadata = %Object{
-      name: object_path,
-      contentType: upload.content_type
-    }
-
-    with {:ok, conn} <- auth(goth_server),
-         {:ok, object} <-
-           Objects.storage_objects_insert_simple(conn, bucket, "multipart", metadata, upload.path) do
-      {:ok,
-       %Buckets.Object{
-         filename: upload.filename,
-         content_type: upload.content_type,
-         object_url: object.mediaLink,
-         object_path: object_path
-       }}
-    else
-      error -> handle_error(error)
-    end
-  end
-
-  def put_v2(%Buckets.ObjectV2{data: {:file, path}} = object) do
-    bucket = Keyword.fetch!(object.location.config, :bucket)
-    goth_server = Keyword.fetch!(object.location.config, :goth_server)
-
-    metadata = %Object{
-      name: object.location.path,
+      name: remote_path,
       contentType: object.metadata.content_type
     }
 
     with {:ok, conn} <- auth(goth_server),
-         {:ok, object} <-
+         {:ok, response} <-
            Objects.storage_objects_insert_simple(conn, bucket, "multipart", metadata, path) do
-      {:ok, object}
+      {:ok, response}
     else
       error -> handle_error(error)
     end
   end
 
   @impl true
-  def get(filename, scope, opts) do
-    bucket = Keyword.fetch!(opts, :bucket)
-    goth_server = Keyword.fetch!(opts, :goth_server)
-    object_path = Util.build_object_path(filename, scope, opts)
+  def get(remote_path, config) do
+    bucket = Keyword.fetch!(config, :bucket)
+    goth_server = Keyword.fetch!(config, :goth_server)
 
     with {:ok, conn} <- auth(goth_server),
          {:ok, %{status: 200, body: data}} <-
-           Objects.storage_objects_get(conn, bucket, object_path, [alt: "media"], []) do
-      {:ok, data}
-    else
-      error -> handle_error(error)
-    end
-  end
-
-  def get_v2(%Buckets.ObjectV2{} = object) do
-    bucket = Keyword.fetch!(object.location.config, :bucket)
-    goth_server = Keyword.fetch!(object.location.config, :goth_server)
-
-    with {:ok, conn} <- auth(goth_server),
-         {:ok, %{status: 200, body: data}} <-
-           Objects.storage_objects_get(conn, bucket, object.location.path, [alt: "media"], []) do
+           Objects.storage_objects_get(conn, bucket, remote_path, [alt: "media"], []) do
       {:ok, data}
     else
       error -> handle_error(error)
@@ -94,11 +53,10 @@ defmodule Buckets.Strategy.GCS do
 
   """
   @impl true
-  def url(filename, scope, opts) do
-    bucket = Keyword.fetch!(opts, :bucket)
-    goth_server = Keyword.fetch!(opts, :goth_server)
-    service_account = Keyword.fetch!(opts, :service_account)
-    object_path = Util.build_object_path(filename, scope, opts)
+  def url(remote_path, config) do
+    bucket = Keyword.fetch!(config, :bucket)
+    goth_server = Keyword.fetch!(config, :goth_server)
+    service_account = Keyword.fetch!(config, :service_account)
 
     case Goth.fetch(goth_server) do
       {:ok, %{token: access_token}} ->
@@ -110,12 +68,12 @@ defmodule Buckets.Strategy.GCS do
         GcsSignedUrl.generate_v4(
           oauth_config,
           bucket,
-          object_path,
-          Keyword.get(opts, :gcs_signed_url, expires: 60)
+          remote_path,
+          Keyword.get(config, :gcs_signed_url, expires: 60)
         )
         |> case do
           {:ok, signed_url} ->
-            {:ok, %Buckets.SignedURL{path: object_path, filename: filename, url: signed_url}}
+            {:ok, %Buckets.SignedURL{path: remote_path, url: signed_url}}
 
           {:error, reason} ->
             {:error, reason}
@@ -127,19 +85,20 @@ defmodule Buckets.Strategy.GCS do
   end
 
   @impl true
-  def delete(filename, scope, opts) do
-    bucket = Keyword.fetch!(opts, :bucket)
-    goth_server = Keyword.fetch!(opts, :goth_server)
-    object_path = Util.build_object_path(filename, scope, opts)
+  def delete(remote_path, config) do
+    bucket = Keyword.fetch!(config, :bucket)
+    goth_server = Keyword.fetch!(config, :goth_server)
 
     with {:ok, conn} <- auth(goth_server),
-         {:ok, %{status: 204}} <-
-           Objects.storage_objects_delete(conn, bucket, object_path) do
-      :ok
+         {:ok, %{status: 204} = response} <-
+           Objects.storage_objects_delete(conn, bucket, remote_path) do
+      {:ok, response}
     else
       error -> handle_error(error)
     end
   end
+
+  ## Private
 
   defp auth(goth_server) do
     with {:ok, token} <- Goth.fetch(goth_server) do

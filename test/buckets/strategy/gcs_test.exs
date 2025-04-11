@@ -14,15 +14,15 @@ defmodule Buckets.Strategy.GCSTest do
   @tag :live_gcs
 
   test "gcs put", context do
-    upload = pdf_upload()
+    %{data: {:file, path}} = object = pdf_object()
 
-    assert File.exists?(upload.path)
-    assert {:ok, object} = GCS.put(upload, context.scope, @gcs_opts)
+    remote_path = "test/objects/#{context.scope}/simple.pdf"
+
+    assert File.exists?(path)
+    assert {:ok, %{}} = GCS.put(object, remote_path, @gcs_opts)
 
     assert "simple.pdf" = object.filename
-    assert "application/pdf" = object.content_type
-    assert object.object_path == "test/objects/#{context.scope}/simple.pdf"
-    assert object.object_url =~ "https://storage.googleapis.com/download/storage/v1/"
+    assert "application/pdf" = object.metadata.content_type
   end
 
   @tag :live
@@ -31,7 +31,9 @@ defmodule Buckets.Strategy.GCSTest do
   test "gcs get", context do
     setup_bucket(context, @gcs_opts)
 
-    assert {:ok, data} = GCS.get("simple.pdf", context.scope, @gcs_opts)
+    remote_path = "test/objects/#{context.scope}/simple.pdf"
+
+    assert {:ok, data} = GCS.get(remote_path, @gcs_opts)
     assert is_binary(data)
   end
 
@@ -41,10 +43,12 @@ defmodule Buckets.Strategy.GCSTest do
   test "gcs url", context do
     setup_bucket(context, @gcs_opts)
 
+    remote_path = "test/objects/#{context.scope}/simple.pdf"
+
     expected_url =
       "https://storage.googleapis.com/#{@gcs_opts[:bucket]}/test/objects/#{context.scope}/simple.pdf?"
 
-    assert {:ok, data} = GCS.url("simple.pdf", context.scope, @gcs_opts)
+    assert {:ok, data} = GCS.url(remote_path, @gcs_opts)
     assert data.url =~ expected_url
   end
 
@@ -52,9 +56,11 @@ defmodule Buckets.Strategy.GCSTest do
   @tag :live_gcs
 
   test "delete", context do
-    %{object: object} = setup_bucket(context, @gcs_opts)
+    setup_bucket(context, @gcs_opts)
 
-    assert :ok = GCS.delete(object.filename, context.scope, @gcs_opts)
-    assert {:error, "No such object:" <> _} = GCS.get("simple.pdf", context.scope, @gcs_opts)
+    remote_path = "test/objects/#{context.scope}/simple.pdf"
+
+    assert {:ok, _response} = GCS.delete(remote_path, @gcs_opts)
+    assert {:error, "No such object:" <> _} = GCS.get(remote_path, @gcs_opts)
   end
 end

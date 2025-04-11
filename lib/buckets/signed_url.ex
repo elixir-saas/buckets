@@ -1,9 +1,8 @@
 defmodule Buckets.SignedURL do
-  defstruct [:path, :filename, :url]
+  defstruct [:path, :url]
 
   @type t() :: %__MODULE__{
           path: String.t(),
-          filename: String.t(),
           url: String.t()
         }
 

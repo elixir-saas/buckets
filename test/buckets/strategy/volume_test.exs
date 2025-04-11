@@ -11,46 +11,49 @@ defmodule Buckets.Strategy.VolumeTest do
   setup :setup_scope
 
   test "put", context do
-    upload = pdf_upload()
+    %{data: {:file, path}} = object = pdf_object()
 
-    assert File.exists?(upload.path)
-    assert {:ok, object} = Volume.put(upload, context.scope, @volume_opts)
+    remote_path = "test/objects/#{context.scope}/simple.pdf"
+
+    assert File.exists?(path)
+    assert {:ok, %{}} = Volume.put(object, remote_path, @volume_opts)
 
     assert "simple.pdf" = object.filename
-    assert "application/pdf" = object.content_type
-    assert object.object_path == "test/objects/#{context.scope}/simple.pdf"
-    assert object.object_url =~ "file://"
-    assert object.object_url =~ "test/objects/#{context.scope}/simple.pdf"
+    assert "application/pdf" = object.metadata.content_type
   end
 
   test "get", context do
     setup_bucket(context, @volume_opts)
 
-    assert {:ok, data} = Volume.get("simple.pdf", context.scope, @volume_opts)
+    remote_path = "test/objects/#{context.scope}/simple.pdf"
+
+    assert {:ok, data} = Volume.get(remote_path, @volume_opts)
     assert is_binary(data)
   end
 
   test "url", context do
     setup_bucket(context, @volume_opts)
 
+    remote_path = "test/objects/#{context.scope}/simple.pdf"
+
     expected_url =
       "http://localhost:4000/__buckets__/volume" <>
         "?path=test%2Fobjects%2F#{context.scope}%2Fsimple.pdf" <>
         "&bucket=%2Fvar%2Ffolders%2Fd5%2Ff89z8ycn6vz_vlv1lbjzp9x00000gn%2FT%2F"
 
-    assert {:ok, %Buckets.SignedURL{url: ^expected_url}} =
-             Volume.url("simple.pdf", context.scope, @volume_opts)
+    assert {:ok, %Buckets.SignedURL{url: ^expected_url}} = Volume.url(remote_path, @volume_opts)
   end
 
   test "delete", context do
-    %{object: object} = setup_bucket(context, @volume_opts)
+    setup_bucket(context, @volume_opts)
 
-    "file://" <> file_path = object.object_url
+    remote_path = "test/objects/#{context.scope}/simple.pdf"
+    bucket_path = Path.join(@volume_opts[:bucket], remote_path)
 
-    assert File.exists?(file_path)
+    assert File.exists?(bucket_path)
 
-    Buckets.delete("simple.pdf", context.scope, @volume_opts)
+    Buckets.delete(remote_path, @volume_opts)
 
-    refute File.exists?(file_path)
+    refute File.exists?(bucket_path)
   end
 end
