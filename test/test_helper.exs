@@ -5,4 +5,4 @@ sa_json =
   |> File.read!()
   |> Jason.decode!()
 
-{:ok, _pid} = Goth.start_link(name: Pod.GothTest, source: {:service_account, sa_json})
+{:ok, _pid} = Goth.start_link(name: GothTest, source: {:service_account, sa_json})

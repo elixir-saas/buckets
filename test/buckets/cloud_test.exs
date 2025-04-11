@@ -7,7 +7,7 @@ defmodule Buckets.CloudTest do
 
     test "inserts path to google" do
       assert {:ok, %{stored?: true} = object} =
-               TestCloud.insert("priv/simple.pdf", location: :google_cloud)
+               TestCloud.insert("priv/simple.pdf", config: :google_cloud)
 
       assert object.uuid != nil
       assert object.filename == "simple.pdf"
@@ -36,7 +36,7 @@ defmodule Buckets.CloudTest do
 
     test "inserts path to location" do
       assert {:ok, %{stored?: true} = object} =
-               TestCloud.insert("priv/simple.pdf", location: :other_local)
+               TestCloud.insert("priv/simple.pdf", config: :other_local)
 
       assert object.uuid != nil
       assert object.filename == "simple.pdf"

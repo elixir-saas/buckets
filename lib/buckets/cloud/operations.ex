@@ -7,7 +7,7 @@ defmodule Buckets.Cloud.Operations do
   end
 
   def insert(module, %Object{location: %Location.NotConfigured{}} = object, opts) do
-    {location, opts} = Keyword.pop(opts, :location, :default)
+    {location, opts} = Keyword.pop(opts, :config, :default)
 
     location_config = module.config_for(location)
     filename_normalized = module.normalize_filename(object.filename)
