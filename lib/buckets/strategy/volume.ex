@@ -1,5 +1,5 @@
 defmodule Buckets.Strategy.Volume do
-  @behaviour Buckets.Bucket
+  @behaviour Buckets.Strategy
 
   alias Buckets.Util
 

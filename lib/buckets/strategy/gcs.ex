@@ -1,5 +1,5 @@
 defmodule Buckets.Strategy.GCS do
-  @behaviour Buckets.Bucket
+  @behaviour Buckets.Strategy
 
   alias Buckets.Util
 

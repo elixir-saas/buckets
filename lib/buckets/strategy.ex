@@ -1,4 +1,4 @@
-defmodule Buckets.Bucket do
+defmodule Buckets.Strategy do
   @type scope() :: binary() | %{id: binary()}
 
   @callback put(Buckets.Upload.t(), scope(), Keyword.t()) ::
