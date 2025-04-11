@@ -1,3 +1,9 @@
+<p align="center">
+  <img src="priv/logo.png" height="150" />
+</p>
+
+---
+
 # Buckets
 
 **TODO: Add description**
