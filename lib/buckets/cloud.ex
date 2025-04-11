@@ -4,40 +4,40 @@ defmodule Buckets.Cloud do
     default_location = opts[:default_location]
 
     quote do
-      def read(object) do
-        Buckets.Cloud.Operations.read(object)
-      end
-
-      def read!(object) do
-        Buckets.Cloud.Operations.read!(object)
-      end
-
-      def load(object, opts \\ []) do
-        Buckets.Cloud.Operations.load(__MODULE__, object, opts)
-      end
-
-      def load!(object, opts \\ []) do
-        Buckets.Cloud.Operations.load!(__MODULE__, object, opts)
-      end
-
-      def unload(object) do
-        Buckets.Cloud.Operations.unload(object)
-      end
-
       def insert(object_or_path, opts \\ []) do
         Buckets.Cloud.Operations.insert(__MODULE__, object_or_path, opts)
-      end
-
-      def insert!(object_or_path, opts \\ []) do
-        Buckets.Cloud.Operations.insert!(__MODULE__, object_or_path, opts)
       end
 
       def delete(object) do
         Buckets.Cloud.Operations.delete(object)
       end
 
+      def read(object) do
+        Buckets.Cloud.Operations.read(object)
+      end
+
+      def load(object, opts \\ []) do
+        Buckets.Cloud.Operations.load(__MODULE__, object, opts)
+      end
+
+      def unload(object) do
+        Buckets.Cloud.Operations.unload(object)
+      end
+
+      def insert!(object_or_path, opts \\ []) do
+        Buckets.Cloud.Operations.insert!(__MODULE__, object_or_path, opts)
+      end
+
       def delete!(object) do
         Buckets.Cloud.Operations.delete!(object)
+      end
+
+      def read!(object) do
+        Buckets.Cloud.Operations.read!(object)
+      end
+
+      def load!(object, opts \\ []) do
+        Buckets.Cloud.Operations.load!(__MODULE__, object, opts)
       end
 
       ## Overridable

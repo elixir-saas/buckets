@@ -2,6 +2,47 @@ defmodule Buckets.Cloud.Operations do
   alias Buckets.ObjectV2
   alias Buckets.Location
 
+  def insert(module, path, opts) when is_binary(path) do
+    insert(module, ObjectV2.from_file(path), opts)
+  end
+
+  def insert(module, %ObjectV2{location: %Location.NotConfigured{}} = object, opts) do
+    {location, opts} = Keyword.pop(opts, :location, :default)
+
+    location_config = module.config_for(location)
+    filename_normalized = module.normalize_filename(object.filename)
+
+    location_path =
+      if base_path = location_config[:path] do
+        Path.join([base_path, object.uuid, filename_normalized])
+      else
+        Path.join([object.uuid, filename_normalized])
+      end
+
+    location = Location.new(location_path, location_config)
+    insert(module, %{object | location: location}, opts)
+  end
+
+  def insert(_module, %ObjectV2{} = object, _opts) do
+    case object.location.config[:strategy].put_v2(object) do
+      {:ok, _meta} ->
+        {:ok, %{object | stored?: true}}
+
+      {:error, _reason} = error ->
+        error
+    end
+  end
+
+  def delete(%ObjectV2{} = object) do
+    case object.location.config[:strategy].delete_v2(object.location) do
+      {:ok, _meta} ->
+        {:ok, %{object | stored?: false}}
+
+      {:error, _reason} = error ->
+        error
+    end
+  end
+
   def read(%ObjectV2{data: nil, location: %Location.NotConfigured{}}) do
     raise """
     Called `read/1` with an object that is missing a location.
@@ -18,20 +59,6 @@ defmodule Buckets.Cloud.Operations do
 
   def read(%ObjectV2{} = object) do
     object.location.config[:strategy].get_v2(object)
-  end
-
-  def read!(%ObjectV2{} = object) do
-    case read(object) do
-      {:ok, data} ->
-        data
-
-      {:error, reason} ->
-        raise """
-        Failed to get object data in `read!/1` with reason:
-
-            #{inspect(reason)}
-        """
-    end
   end
 
   def load(_module, %ObjectV2{location: %Location.NotConfigured{}}, _opts) do
@@ -74,20 +101,6 @@ defmodule Buckets.Cloud.Operations do
     end
   end
 
-  def load!(module, %ObjectV2{} = object, opts) do
-    case load(module, object, opts) do
-      {:ok, object} ->
-        object
-
-      {:error, reason} ->
-        raise """
-        Failed to get object data in `load!/2` with reason:
-
-            #{inspect(reason)}
-        """
-    end
-  end
-
   def unload(%ObjectV2{data: nil} = object) do
     object
   end
@@ -99,37 +112,6 @@ defmodule Buckets.Cloud.Operations do
   def unload(%ObjectV2{data: {:file, path}} = object) do
     File.rm!(path)
     %{object | data: nil}
-  end
-
-  def insert(module, path, opts) when is_binary(path) do
-    insert(module, ObjectV2.from_file(path), opts)
-  end
-
-  def insert(module, %ObjectV2{location: %Location.NotConfigured{}} = object, opts) do
-    {location, opts} = Keyword.pop(opts, :location, :default)
-
-    location_config = module.config_for(location)
-    filename_normalized = module.normalize_filename(object.filename)
-
-    location_path =
-      if base_path = location_config[:path] do
-        Path.join([base_path, object.uuid, filename_normalized])
-      else
-        Path.join([object.uuid, filename_normalized])
-      end
-
-    location = Location.new(location_path, location_config)
-    insert(module, %{object | location: location}, opts)
-  end
-
-  def insert(_module, %ObjectV2{} = object, _opts) do
-    case object.location.config[:strategy].put_v2(object) do
-      {:ok, _meta} ->
-        {:ok, %{object | stored?: true}}
-
-      {:error, _reason} = error ->
-        error
-    end
   end
 
   def insert!(module, object_or_path, opts) do
@@ -146,16 +128,6 @@ defmodule Buckets.Cloud.Operations do
     end
   end
 
-  def delete(%ObjectV2{} = object) do
-    case object.location.config[:strategy].delete_v2(object.location) do
-      {:ok, _meta} ->
-        {:ok, %{object | stored?: false}}
-
-      {:error, _reason} = error ->
-        error
-    end
-  end
-
   def delete!(%ObjectV2{} = object) do
     case delete(object) do
       {:ok, object} ->
@@ -164,6 +136,34 @@ defmodule Buckets.Cloud.Operations do
       {:error, reason} ->
         raise """
         Failed to delete object in `delete!/1` with reason:
+
+            #{inspect(reason)}
+        """
+    end
+  end
+
+  def read!(%ObjectV2{} = object) do
+    case read(object) do
+      {:ok, data} ->
+        data
+
+      {:error, reason} ->
+        raise """
+        Failed to get object data in `read!/1` with reason:
+
+            #{inspect(reason)}
+        """
+    end
+  end
+
+  def load!(module, %ObjectV2{} = object, opts) do
+    case load(module, object, opts) do
+      {:ok, object} ->
+        object
+
+      {:error, reason} ->
+        raise """
+        Failed to get object data in `load!/2` with reason:
 
             #{inspect(reason)}
         """
