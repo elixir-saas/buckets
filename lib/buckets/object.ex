@@ -1,4 +1,6 @@
 defmodule Buckets.Object do
+  alias Phoenix.LiveView, as: LV
+
   @type t :: %__MODULE__{
           uuid: String.t(),
           filename: String.t(),
@@ -65,6 +67,52 @@ defmodule Buckets.Object do
       },
       location: %Buckets.Location.NotConfigured{},
       stored?: false
+    }
+  end
+
+  def from_upload(%Plug.Upload{} = upload) do
+    %__MODULE__{
+      uuid: Ecto.UUID.generate(),
+      filename: upload.filename,
+      data: {:file, upload.path},
+      metadata: %{
+        content_type: upload.content_type || MIME.from_path(upload.path),
+        content_size: Buckets.Util.size(upload.path)
+      },
+      location: %Buckets.Location.NotConfigured{},
+      stored?: false
+    }
+  end
+
+  def from_upload({%LV.UploadEntry{} = upload, meta}) do
+    if not upload.done? do
+      raise """
+      Called `from_upload/1` with a `LiveView.UploadEntry` struct that was not done uploading.
+      """
+    end
+
+    {data, content_type, content_size} =
+      case meta do
+        %{path: path} -> {{:file, path}, MIME.from_path(path), Buckets.Util.size(path)}
+        _otherwise -> {nil, upload.client_type, upload.client_size}
+      end
+
+    location =
+      case meta do
+        %{url: %Buckets.SignedURL{location: location}} -> location
+        _otherwise -> %Buckets.Location.NotConfigured{}
+      end
+
+    %__MODULE__{
+      uuid: upload.uuid,
+      filename: upload.client_name,
+      data: data,
+      metadata: %{
+        content_type: content_type,
+        content_size: content_size
+      },
+      location: location,
+      stored?: location != %Buckets.Location.NotConfigured{}
     }
   end
 end

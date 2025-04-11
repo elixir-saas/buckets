@@ -73,7 +73,8 @@ defmodule Buckets.Strategy.GCS do
         )
         |> case do
           {:ok, signed_url} ->
-            {:ok, %Buckets.SignedURL{path: remote_path, url: signed_url}}
+            location = %Buckets.Location{path: remote_path, config: config}
+            {:ok, %Buckets.SignedURL{url: signed_url, location: location}}
 
           {:error, reason} ->
             {:error, reason}

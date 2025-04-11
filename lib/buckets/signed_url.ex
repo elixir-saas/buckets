@@ -1,9 +1,9 @@
 defmodule Buckets.SignedURL do
-  defstruct [:path, :url]
+  defstruct [:url, :location]
 
   @type t() :: %__MODULE__{
-          path: String.t(),
-          url: String.t()
+          url: String.t(),
+          location: Buckets.Location.t()
         }
 
   def to_string(signed_url), do: signed_url.url

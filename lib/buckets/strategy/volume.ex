@@ -31,8 +31,9 @@ defmodule Buckets.Strategy.Volume do
     }
 
     url = "#{base_url}/__buckets__/volume?#{URI.encode_query(query)}"
+    location = %Buckets.Location{path: remote_path, config: config}
 
-    {:ok, %Buckets.SignedURL{path: remote_path, url: url}}
+    {:ok, %Buckets.SignedURL{url: url, location: location}}
   end
 
   @impl true
