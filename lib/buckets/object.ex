@@ -40,13 +40,20 @@ defmodule Buckets.Object do
   end
 
   def new(uuid, filename, opts) do
+    location =
+      case opts[:location] do
+        {path, config} -> Buckets.Location.new(path, config)
+        %Buckets.Location{} = location -> location
+        _otherwise -> %Buckets.Location.NotConfigured{}
+      end
+
     %__MODULE__{
       uuid: uuid,
       filename: filename,
       data: nil,
       metadata: Keyword.get(opts, :metadata, %{}),
-      location: Keyword.get(opts, :location, %Buckets.Location.NotConfigured{}),
-      stored?: Keyword.has_key?(opts, :location)
+      location: location,
+      stored?: location != %Buckets.Location.NotConfigured{}
     }
   end
 
