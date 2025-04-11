@@ -24,6 +24,10 @@ defmodule Buckets.Cloud do
         Buckets.Cloud.Operations.unload(object)
       end
 
+      def live_upload(entry, opts \\ []) do
+        Buckets.Cloud.Operations.live_upload(__MODULE__, entry, opts)
+      end
+
       def insert!(object_or_path, opts \\ []) do
         Buckets.Cloud.Operations.insert!(__MODULE__, object_or_path, opts)
       end
@@ -38,6 +42,10 @@ defmodule Buckets.Cloud do
 
       def load!(object, opts \\ []) do
         Buckets.Cloud.Operations.load!(__MODULE__, object, opts)
+      end
+
+      def live_upload!(entry, opts \\ []) do
+        Buckets.Cloud.Operations.live_upload!(__MODULE__, entry, opts)
       end
 
       ## Overridable

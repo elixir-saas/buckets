@@ -10,16 +10,9 @@ defmodule Buckets.Cloud.Operations do
     {location, opts} = Keyword.pop(opts, :config, :default)
 
     location_config = module.config_for(location)
-    filename_normalized = module.normalize_filename(object.filename)
-
-    location_path =
-      if base_path = location_config[:path] do
-        Path.join([base_path, object.uuid, filename_normalized])
-      else
-        Path.join([object.uuid, filename_normalized])
-      end
-
+    location_path = default_object_location(module, object, location_config)
     location = Location.new(location_path, location_config)
+
     insert(module, %{object | location: location}, opts)
   end
 
@@ -114,6 +107,29 @@ defmodule Buckets.Cloud.Operations do
     %{object | data: nil}
   end
 
+  def live_upload(module, entry, opts) do
+    {location, opts} = Keyword.pop(opts, :config, :default)
+
+    object = Object.from_upload(entry)
+    location_config = module.config_for(location)
+    location_path = default_object_location(module, object, location_config)
+
+    uploader =
+      location_config[:uploader] ||
+        raise """
+        Must specifiy the :uploader config option to use `live_upload/2`.
+        """
+
+    url_opts =
+      opts
+      |> Keyword.merge(location_config)
+      |> Keyword.put(:for_upload, true)
+
+    with {:ok, signed_url} <- Buckets.url(location_path, url_opts) do
+      {:ok, %{uploader: uploader, url: signed_url}}
+    end
+  end
+
   def insert!(module, object_or_path, opts) do
     case insert(module, object_or_path, opts) do
       {:ok, object} ->
@@ -167,6 +183,32 @@ defmodule Buckets.Cloud.Operations do
 
             #{inspect(reason)}
         """
+    end
+  end
+
+  def live_upload!(module, entry, opts) do
+    case live_upload(module, entry, opts) do
+      {:ok, upload_config} ->
+        upload_config
+
+      {:error, reason} ->
+        raise """
+        Failed to create config in `live_upload!/2` with reason:
+
+            #{inspect(reason)}
+        """
+    end
+  end
+
+  ## Private
+
+  defp default_object_location(module, object, config) do
+    filename_normalized = module.normalize_filename(object.filename)
+
+    if base_path = config[:path] do
+      Path.join([base_path, object.uuid, filename_normalized])
+    else
+      Path.join([object.uuid, filename_normalized])
     end
   end
 end

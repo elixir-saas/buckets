@@ -1,6 +1,8 @@
 defmodule Buckets.Strategy.GCS do
   @behaviour Buckets.Strategy
 
+  require Logger
+
   alias GoogleApi.Storage.V1.Api.Objects
   alias GoogleApi.Storage.V1.Model.Object
 
@@ -54,6 +56,17 @@ defmodule Buckets.Strategy.GCS do
   """
   @impl true
   def url(remote_path, config) do
+    if config[:for_upload] == true and config[:gcs_signed_url] == nil do
+      Logger.warning("""
+      Whan generating a Google Cloud Storage signed URL for direct upload, always
+      include a `:gcs_signed_url` option, for example:
+
+          gcs_signed_url: [verb: "PUT", expires: 900]
+
+      Otherwise, GCS will reject the PUT request to store the file on upload.
+      """)
+    end
+
     bucket = Keyword.fetch!(config, :bucket)
     goth_server = Keyword.fetch!(config, :goth_server)
     service_account = Keyword.fetch!(config, :service_account)

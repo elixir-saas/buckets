@@ -91,6 +91,26 @@ defmodule Buckets.Object do
     }
   end
 
+  def from_upload(%LV.UploadEntry{} = upload) do
+    if upload.done? do
+      raise """
+      Called `from_upload/1` with a `LiveView.UploadEntry` struct that was done uploading, but
+      without any metadata.
+
+      For finished uploads, provide both in a tuple: `{%UploadEntry{}, meta}`.
+      """
+    end
+
+    %__MODULE__{
+      uuid: upload.uuid,
+      filename: upload.client_name,
+      data: nil,
+      metadata: %{},
+      location: %Buckets.Location.NotConfigured{},
+      stored?: false
+    }
+  end
+
   def from_upload({%LV.UploadEntry{} = upload, meta}) do
     if not upload.done? do
       raise """
