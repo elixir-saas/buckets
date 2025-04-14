@@ -11,7 +11,7 @@ defmodule Buckets.Router do
 
     quote do
       scope "/__buckets__" do
-        put("/volume", Buckets.VolumeController, :put,
+        put("/volume", Buckets.Router.VolumeController, :put,
           private: %{bucket_path: unquote(bucket_path)}
         )
       end

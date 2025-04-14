@@ -1,4 +1,4 @@
-defmodule Buckets.VolumeController do
+defmodule Buckets.Router.VolumeController do
   use Phoenix.Controller
 
   def put(conn, %{"path" => path, "bucket" => bucket}) do
