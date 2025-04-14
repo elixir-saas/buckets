@@ -6,12 +6,30 @@
 
 # Buckets
 
-**TODO: Add description**
+A solution for storing objects in buckets.
+
+Supports:
+
+- [x] File System ([`Buckets.Strategy.Volume`](./lib/buckets/strategy/volume.ex))
+- [x] Google Cloud Storage ([`Buckets.Strategy.GCS`](./lib/buckets/strategy/gcs.ex))
+- [ ] Amazon S3
+- [ ] DigitalOcean
+- [ ] Fly.io Tigris
+
+Features:
+
+- [x] Multi-cloud
+- [x] Dynamically configured clouds
+- [x] Signed URLs
+- [x] Easy Plug uploads
+- [x] Easy LiveView direct-to-cloud uploads
+- [x] Dev env router
+- [ ] Streaming uploads
+- [ ] Streaming downloads
 
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `buckets` to your list of dependencies in `mix.exs`:
+Install by adding `buckets` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
@@ -21,9 +39,7 @@ def deps do
 end
 ```
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/buckets>.
+Full documentation at <https://hexdocs.pm/buckets>.
 
 ## Testing
 
