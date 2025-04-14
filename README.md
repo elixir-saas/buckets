@@ -26,6 +26,7 @@ Features:
 - [x] Dev env router
 - [ ] Streaming uploads
 - [ ] Streaming downloads
+- [ ] Telemetry
 
 ## Installation
 
