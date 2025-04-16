@@ -7,7 +7,29 @@ defmodule Buckets.CloudTest do
 
     test "inserts path to google" do
       assert {:ok, %{stored?: true} = object} =
-               TestCloud.insert("priv/simple.pdf", config: :google_cloud)
+               TestCloud.insert("priv/simple.pdf", config: :google)
+
+      assert object.uuid != nil
+      assert object.filename == "simple.pdf"
+      assert object.data == {:file, "priv/simple.pdf"}
+      assert object.metadata == %{content_type: "application/pdf", content_size: 3028}
+      assert object.location.path =~ "test/objects/"
+
+      object = %{object | data: nil}
+
+      assert {:ok, object} = TestCloud.load(object, to: {:tmp, "_scope"})
+      assert {:file, _path} = object.data
+
+      assert {:ok, object} = TestCloud.load(object, force: true)
+      assert {:data, _data} = object.data
+    end
+
+    @tag :live
+    @tag :live_aws
+
+    test "inserts path to amazon" do
+      assert {:ok, %{stored?: true} = object} =
+               TestCloud.insert("priv/simple.pdf", config: :amazon)
 
       assert object.uuid != nil
       assert object.filename == "simple.pdf"

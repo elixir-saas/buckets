@@ -12,7 +12,7 @@ Supports:
 
 - [x] File System ([`Buckets.Strategy.Volume`](./lib/buckets/strategy/volume.ex))
 - [x] Google Cloud Storage ([`Buckets.Strategy.GCS`](./lib/buckets/strategy/gcs.ex))
-- [ ] Amazon S3
+- [x] Amazon S3
 - [ ] DigitalOcean
 - [ ] Fly.io Tigris
 

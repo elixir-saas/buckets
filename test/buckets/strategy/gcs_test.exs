@@ -6,7 +6,7 @@ defmodule Buckets.Strategy.GCSTest do
   import Buckets.Setup
   import Buckets.UploadFixtures
 
-  @gcs_opts Application.compile_env!(:buckets, :gcs_opts)
+  @gcs_opts Application.compile_env!(:buckets, TestCloud)[:locations][:google]
 
   setup :setup_scope
 

@@ -41,6 +41,7 @@ defmodule Buckets.MixProject do
       {:phoenix, "~> 1.7"},
       {:phoenix_live_view, "~> 1.0"},
       {:jason, "~> 1.4"},
+      {:ex_aws_s3, "~> 2.0"},
       {:google_api_storage, "~> 0.34"},
       {:gcs_signed_url, "~> 0.4"},
       {:goth, "~> 1.4"},
