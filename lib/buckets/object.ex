@@ -120,8 +120,12 @@ defmodule Buckets.Object do
 
     {data, content_type, content_size} =
       case meta do
-        %{path: path} -> {{:file, path}, MIME.from_path(path), Buckets.Util.size(path)}
-        _otherwise -> {nil, upload.client_type, upload.client_size}
+        %{path: path} ->
+          content_type = upload.client_type || MIME.from_path(path)
+          {{:file, path}, content_type, Buckets.Util.size(path)}
+
+        _otherwise ->
+          {nil, upload.client_type, upload.client_size}
       end
 
     location =
