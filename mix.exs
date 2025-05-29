@@ -39,7 +39,7 @@ defmodule Buckets.MixProject do
       {:ecto, "~> 3.11"},
       {:plug, "~> 1.14"},
       {:phoenix, "~> 1.7"},
-      {:phoenix_live_view, "~> 1.0"},
+      {:phoenix_live_view, ">= 0.20.0"},
       {:jason, "~> 1.4"},
       {:ex_aws_s3, "~> 2.0"},
       {:google_api_storage, "~> 0.34"},
