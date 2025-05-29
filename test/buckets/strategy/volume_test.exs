@@ -37,9 +37,9 @@ defmodule Buckets.Strategy.VolumeTest do
     remote_path = "test/objects/#{context.scope}/simple.pdf"
 
     expected_url =
-      "http://localhost:4000/__buckets__/volume" <>
-        "?path=test%2Fobjects%2F#{context.scope}%2Fsimple.pdf" <>
-        "&bucket=%2Fvar%2Ffolders%2Fd5%2Ff89z8ycn6vz_vlv1lbjzp9x00000gn%2FT%2F"
+      "http://localhost:4000/__buckets__/" <>
+        "#{URI.encode(@volume_opts[:bucket], &URI.char_unreserved?/1)}" <>
+        "/test/objects/#{context.scope}/simple.pdf"
 
     assert {:ok, %Buckets.SignedURL{url: ^expected_url}} = Volume.url(remote_path, @volume_opts)
   end

@@ -60,17 +60,16 @@ defmodule Buckets.Router.VolumeController do
   end
 
   defp validate_signature(conn, _opts) do
+    import Buckets.Strategy.Volume, only: [verify_signed_path: 3]
+
     location = conn.private.location
     config = conn.private.cloud_module.config_for(location)
 
-    endpoint =
-      config[:endpoint] ||
-        raise """
-        Must configure the :endpoint option for Buckets.Strategy.Local if you are using
-        the buckets_volume router helper.
-        """
+    %{path_info: path, query_params: params} = conn
 
-    if Buckets.Strategy.Volume.verify_signed_path(conn.path_info, conn.query_params, endpoint) do
+    endpoint = config[:endpoint]
+
+    if endpoint == nil or verify_signed_path(path, params, endpoint) do
       conn
     else
       raise """

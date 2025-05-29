@@ -28,7 +28,8 @@ defmodule Buckets.Strategy.Volume do
     params = %{}
     params = if config[:for_upload], do: Map.put(params, :verb, "PUT"), else: params
 
-    path = [Buckets.Router.scope(), config[:bucket], remote_path]
+    bucket_encoded = URI.encode(config[:bucket], &URI.char_unreserved?/1)
+    path = [Buckets.Router.scope(), bucket_encoded, remote_path]
 
     path =
       if endpoint = config[:endpoint] do
