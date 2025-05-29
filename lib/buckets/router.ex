@@ -1,19 +1,30 @@
 defmodule Buckets.Router do
-  defmacro buckets_volume(opts \\ []) do
-    bucket_path =
-      opts[:path] ||
-        raise """
-        `buckets_volume/1` requires the :path option to be set.
+  @scope "__buckets__"
 
-            Set :path to the local directory that should serve as the base
-            for files uploaded using `Buckets.Strategy.Volume`.
-        """
+  def scope(), do: @scope
+
+  defmacro buckets_volume(cloud_module, opts \\ []) do
+    {location, opts} = Keyword.pop(opts, :location)
+
+    if !location do
+      raise """
+      `buckets_volume/1` requires the :location option to be set.
+
+          Set :location to the location that you have configured with
+          the `Buckets.Strategy.Volume` strategy.
+      """
+    end
 
     quote do
-      scope "/__buckets__" do
-        put("/volume", Buckets.Router.VolumeController, :put,
-          private: %{bucket_path: unquote(bucket_path)}
-        )
+      scope unquote("/" <> @scope) do
+        private = %{
+          cloud_module: unquote(cloud_module),
+          location: unquote(location),
+          opts: unquote(opts)
+        }
+
+        get("/:bucket/*path", Buckets.Router.VolumeController, :get, private: private)
+        put("/:bucket/*path", Buckets.Router.VolumeController, :put, private: private)
       end
     end
   end

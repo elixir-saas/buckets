@@ -1,24 +1,82 @@
 defmodule Buckets.Router.VolumeController do
   use Phoenix.Controller
 
-  def put(conn, %{"path" => path, "bucket" => bucket}) do
-    if bucket != conn.private.bucket_path do
-      raise """
-      The `"bucket"` parameter must match `:path` option given to `buckets_volume/1`.
+  plug(:validate_bucket)
+  plug(:validate_signature)
 
-      Check that the configuration you are using to generate the volume upload URL matches
-      the value configured in your Router module.
+  def get(conn, %{"path" => path}) do
+    cloud_module = conn.private.cloud_module
+    config = cloud_module.config_for(conn.private.location)
+
+    object =
+      Buckets.Object.new(nil, List.last(path), location: {Path.join(path), config})
+
+    binary = cloud_module.read!(object)
+
+    conn =
+      if max_age = Keyword.get(conn.private.opts, :cache_control) do
+        put_resp_header(conn, "cache-control", "max-age=#{max_age}")
+      else
+        conn
+      end
+
+    send_download(conn, {:binary, binary}, filename: object.filename)
+  end
+
+  def put(conn, %{"bucket" => bucket, "path" => path} = params) do
+    if params["verb"] != "PUT" do
+      raise """
+      Tried to upload file to a URL not designated for uploads.
       """
     end
 
-    path = Path.join(bucket, path)
+    path = Path.join([bucket | path])
     File.mkdir_p!(Path.dirname(path))
 
     conn
     |> stream_body()
-    |> Enum.into(File.stream!(path))
+    |> Stream.into(File.stream!(path))
+    |> Stream.run()
 
     send_resp(conn, 200, "")
+  end
+
+  ## Plugs
+
+  defp validate_bucket(conn, _opts) do
+    location = conn.private.location
+    config = conn.private.cloud_module.config_for(location)
+
+    if config[:bucket] == conn.path_params["bucket"] do
+      conn
+    else
+      raise """
+      The `"bucket"` parameter must match the `:bucket` configured for: #{inspect(location)}.
+
+          Check that the configuration you are using to generate the volume upload URL matches
+          the location configured in your Router module.
+      """
+    end
+  end
+
+  defp validate_signature(conn, _opts) do
+    location = conn.private.location
+    config = conn.private.cloud_module.config_for(location)
+
+    endpoint =
+      config[:endpoint] ||
+        raise """
+        Must configure the :endpoint option for Buckets.Strategy.Local if you are using
+        the buckets_volume router helper.
+        """
+
+    if Buckets.Strategy.Volume.verify_signed_path(conn.path_info, conn.query_params, endpoint) do
+      conn
+    else
+      raise """
+      Request to buckets_volume failed signature verification.
+      """
+    end
   end
 
   ## Private

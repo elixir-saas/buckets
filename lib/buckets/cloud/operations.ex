@@ -107,8 +107,18 @@ defmodule Buckets.Cloud.Operations do
     %{object | data: nil}
   end
 
+  def url(%Object{location: %Location.NotConfigured{}}, _opts) do
+    raise """
+    Unable to create a signed url for an object without a location.
+    """
+  end
+
+  def url(%Object{} = object, opts) do
+    Buckets.url(object.location.path, Keyword.merge(opts, object.location.config))
+  end
+
   def live_upload(module, entry, opts) do
-    {location, opts} = Keyword.pop(opts, :config, :default)
+    {location, opts} = Keyword.pop(opts, :location, :default)
 
     object = Object.from_upload(entry)
     location_config = module.config_for(location)
@@ -180,6 +190,20 @@ defmodule Buckets.Cloud.Operations do
       {:error, reason} ->
         raise """
         Failed to get object data in `load!/2` with reason:
+
+            #{inspect(reason)}
+        """
+    end
+  end
+
+  def url!(object, opts) do
+    case url(object, opts) do
+      {:ok, signed_url} ->
+        signed_url
+
+      {:error, reason} ->
+        raise """
+        Failed to create signed url in `url!/2` with reason:
 
             #{inspect(reason)}
         """

@@ -92,6 +92,11 @@ defmodule Buckets.Cloud do
   @callback unload(object :: Buckets.Object.t()) :: Buckets.Object.t()
 
   @doc """
+  Returns a SignedURL struct for a `Buckets.Object`.
+  """
+  @callback url(object :: Buckets.Object.t()) :: Buckets.Object.t()
+
+  @doc """
   Returns a map to be used as configuration for a LiveView live upload. The configuration
   contains a signed URL that permits the upload to a remote bucket. Requires that an `:uploader`
   is configured for the location that the file is being uploaded to.
@@ -125,6 +130,11 @@ defmodule Buckets.Cloud do
   @callback load!(object :: Buckets.Object.t(), opts :: Keyword.t()) :: Buckets.Object.t()
 
   @doc """
+  Same as `c:url/1` but returns the SignedURL raises if there is an error.
+  """
+  @callback url!(object :: Buckets.Object.t(), opts :: Keyword.t()) :: Buckets.Object.t()
+
+  @doc """
   Same as `c:live_upload/1` but returns the upload config or raises if there is an error.
   """
   @callback live_upload!(
@@ -147,8 +157,17 @@ defmodule Buckets.Cloud do
   @callback normalize_filename(filename :: String.t()) :: String.t()
 
   defmacro __using__(opts) do
-    otp_app = opts[:otp_app]
-    default_location = opts[:default_location]
+    otp_app =
+      opts[:otp_app] ||
+        raise """
+        Must specify a :otp_app option when using Buckets.Cloud.
+        """
+
+    default_location =
+      opts[:default_location] ||
+        raise """
+        Must specify a :default_location option when using Buckets.Cloud.
+        """
 
     quote do
       @behaviour Buckets.Cloud
@@ -173,6 +192,10 @@ defmodule Buckets.Cloud do
         Buckets.Cloud.Operations.unload(object)
       end
 
+      def url(object, opts \\ []) do
+        Buckets.Cloud.Operations.url(object, opts)
+      end
+
       def live_upload(entry, opts \\ []) do
         Buckets.Cloud.Operations.live_upload(__MODULE__, entry, opts)
       end
@@ -191,6 +214,10 @@ defmodule Buckets.Cloud do
 
       def load!(object, opts \\ []) do
         Buckets.Cloud.Operations.load!(__MODULE__, object, opts)
+      end
+
+      def url!(object, opts \\ []) do
+        Buckets.Cloud.Operations.url!(object, opts)
       end
 
       def live_upload!(entry, opts \\ []) do
