@@ -1,4 +1,4 @@
-defmodule Buckets.Strategy.GCS.AuthServer do
+defmodule Buckets.Adapters.GCS.AuthServer do
   @moduledoc """
   GenServer that manages Google Cloud Storage access tokens.
 
@@ -9,7 +9,7 @@ defmodule Buckets.Strategy.GCS.AuthServer do
   use GenServer
   require Logger
 
-  alias Buckets.Strategy.GCS.Auth
+  alias Buckets.Adapters.GCS.Auth
 
   # Refresh 5 minutes before expiry
   @refresh_margin_seconds 300

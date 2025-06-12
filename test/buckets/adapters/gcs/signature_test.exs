@@ -1,7 +1,7 @@
-defmodule Buckets.Strategy.GCS.SignatureTest do
+defmodule Buckets.Adapters.GCS.SignatureTest do
   use ExUnit.Case, async: true
 
-  alias Buckets.Strategy.GCS.Signature
+  alias Buckets.Adapters.GCS.Signature
 
   describe "generate_v4/4" do
     test "returns error for invalid private key" do

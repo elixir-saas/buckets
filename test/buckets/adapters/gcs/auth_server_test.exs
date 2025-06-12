@@ -1,7 +1,7 @@
-defmodule Buckets.Strategy.GCS.AuthServerTest do
+defmodule Buckets.Adapters.GCS.AuthServerTest do
   use ExUnit.Case
 
-  alias Buckets.Strategy.GCS.AuthSupervisor
+  alias Buckets.Adapters.GCS.AuthSupervisor
 
   setup do
     # Use fake credentials for testing
@@ -17,16 +17,16 @@ defmodule Buckets.Strategy.GCS.AuthServerTest do
     test "supervisor starts successfully with TestCloud" do
       # The supervisor should already be started in test_helper.exs
       # Check that it's running
-      assert Process.whereis(Buckets.Strategy.GCS.AuthSupervisor) != nil
+      assert Process.whereis(Buckets.Adapters.GCS.AuthSupervisor) != nil
 
       # Check that it has started child processes for GCS locations
-      children = Supervisor.which_children(Buckets.Strategy.GCS.AuthSupervisor)
+      children = Supervisor.which_children(Buckets.Adapters.GCS.AuthSupervisor)
 
       # Should have at least one child for the GCS configuration in test.exs
       assert length(children) >= 1
 
       # Each child should be an AuthServer
-      Enum.each(children, fn {_id, pid, :worker, [Buckets.Strategy.GCS.AuthServer]} ->
+      Enum.each(children, fn {_id, pid, :worker, [Buckets.Adapters.GCS.AuthServer]} ->
         assert Process.alive?(pid)
       end)
     end
@@ -34,7 +34,7 @@ defmodule Buckets.Strategy.GCS.AuthServerTest do
     test "can get tokens using the supervisor" do
       # Create a config that looks like what the Cloud module would create
       config = [
-        strategy: Buckets.Strategy.GCS,
+        adapter: Buckets.Adapters.GCS,
         bucket: "test-bucket",
         service_account_path: "secret/elixir-saas-82a32641f1b6.json",
         __location_key__: :google
@@ -77,7 +77,7 @@ defmodule Buckets.Strategy.GCS.AuthServerTest do
   defp test_server_name_for_credentials(credentials) do
     fingerprint = test_credentials_fingerprint(credentials)
     hash = :crypto.hash(:sha256, fingerprint) |> Base.encode16() |> String.slice(0, 16)
-    Module.concat(Buckets.Strategy.GCS.AuthServer, "GCS_#{hash}")
+    Module.concat(Buckets.Adapters.GCS.AuthServer, "GCS_#{hash}")
   end
 
   defp test_credentials_fingerprint(credentials) do
@@ -91,7 +91,7 @@ defmodule Buckets.Strategy.GCS.AuthServerTest do
     test "handles missing location key gracefully" do
       # Config without location key should fail
       config = [
-        strategy: Buckets.Strategy.GCS,
+        adapter: Buckets.Adapters.GCS,
         bucket: "test-bucket",
         service_account_path: "some-path.json"
       ]
@@ -102,7 +102,7 @@ defmodule Buckets.Strategy.GCS.AuthServerTest do
     test "handles missing auth server gracefully" do
       # Config with non-existent location key should fail
       config = [
-        strategy: Buckets.Strategy.GCS,
+        adapter: Buckets.Adapters.GCS,
         bucket: "test-bucket",
         service_account_path: "some-path.json",
         __location_key__: :nonexistent_location
@@ -116,7 +116,7 @@ defmodule Buckets.Strategy.GCS.AuthServerTest do
     test "works with location key from cloud config" do
       # This simulates what happens when Cloud.config_for/1 is called
       config = [
-        strategy: Buckets.Strategy.GCS,
+        adapter: Buckets.Adapters.GCS,
         bucket: "test-bucket",
         service_account_path: "secret/elixir-saas-82a32641f1b6.json",
         __location_key__: :google
@@ -125,7 +125,7 @@ defmodule Buckets.Strategy.GCS.AuthServerTest do
       object = %Buckets.Object{data: {:data, "test data"}, filename: "test.txt"}
 
       # Should successfully route to the auth server for this location
-      result = Buckets.Strategy.GCS.put(object, "test/path", config)
+      result = Buckets.Adapters.GCS.put(object, "test/path", config)
 
       # Should get some kind of result (token or auth error), not a routing error
       assert match?({:ok, _}, result) or match?({:error, _}, result)
@@ -133,7 +133,7 @@ defmodule Buckets.Strategy.GCS.AuthServerTest do
 
     test "fails gracefully with missing location key" do
       config = [
-        strategy: Buckets.Strategy.GCS,
+        adapter: Buckets.Adapters.GCS,
         bucket: "test-bucket",
         service_account_path: "some-path.json"
         # Missing __location_key__
@@ -142,7 +142,7 @@ defmodule Buckets.Strategy.GCS.AuthServerTest do
       object = %Buckets.Object{data: {:data, "test data"}, filename: "test.txt"}
 
       # Should fail with location key missing error
-      result = Buckets.Strategy.GCS.put(object, "test/path", config)
+      result = Buckets.Adapters.GCS.put(object, "test/path", config)
       assert match?({:error, {:location_key_missing, _}}, result)
     end
   end

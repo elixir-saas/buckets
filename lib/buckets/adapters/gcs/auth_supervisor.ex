@@ -1,4 +1,4 @@
-defmodule Buckets.Strategy.GCS.AuthSupervisor do
+defmodule Buckets.Adapters.GCS.AuthSupervisor do
   @moduledoc """
   Supervisor that manages AuthServer processes for GCS locations in a Cloud module.
 
@@ -9,7 +9,7 @@ defmodule Buckets.Strategy.GCS.AuthSupervisor do
   use Supervisor
   require Logger
 
-  alias Buckets.Strategy.GCS.AuthServer
+  alias Buckets.Adapters.GCS.AuthServer
 
   @doc """
   Starts the supervisor with a Cloud module.
@@ -23,7 +23,7 @@ defmodule Buckets.Strategy.GCS.AuthSupervisor do
     cloud =
       opts[:cloud] ||
         raise """
-        Must configure a :cloud module when starting Buckets.Strategy.GCS.AuthSupervisor.
+        Must configure a :cloud module when starting Buckets.Adapters.GCS.AuthSupervisor.
         """
 
     Supervisor.start_link(__MODULE__, cloud, name: __MODULE__)
@@ -72,11 +72,11 @@ defmodule Buckets.Strategy.GCS.AuthSupervisor do
 
   defp get_gcs_location_keys(cloud_module) do
     cloud_module.locations()
-    |> Enum.filter(fn {_key, config} -> config[:strategy] == Buckets.Strategy.GCS end)
+    |> Enum.filter(fn {_key, config} -> config[:adapter] == Buckets.Adapters.GCS end)
     |> Enum.map(fn {key, _config} -> key end)
   end
 
   defp server_name_for_location(location_key) do
-    Module.concat(Buckets.Strategy.GCS.AuthServer, Macro.camelize(to_string(location_key)))
+    Module.concat(Buckets.Adapters.GCS.AuthServer, Macro.camelize(to_string(location_key)))
   end
 end

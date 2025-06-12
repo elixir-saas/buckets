@@ -7,7 +7,7 @@ defmodule Buckets.LocationTest do
     test "redacts config field" do
       location =
         Location.new("/some/path",
-          strategy: Buckets.Strategy.S3,
+          adapter: Buckets.Adapters.S3,
           bucket: "my-bucket",
           access_key_id: "AKIAIOSFODNN7EXAMPLE",
           secret_access_key: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
@@ -22,7 +22,7 @@ defmodule Buckets.LocationTest do
     end
 
     test "shows path field normally" do
-      location = Location.new("/uploads/test.pdf", strategy: Buckets.Strategy.Volume)
+      location = Location.new("/uploads/test.pdf", adapter: Buckets.Adapters.Volume)
 
       inspected = inspect(location)
 
@@ -32,7 +32,7 @@ defmodule Buckets.LocationTest do
 
   describe "new/2" do
     test "creates location with path and config" do
-      config = [strategy: Buckets.Strategy.Volume, bucket: "test"]
+      config = [adapter: Buckets.Adapters.Volume, bucket: "test"]
       location = Location.new("/test/path", config)
 
       assert location.path == "/test/path"

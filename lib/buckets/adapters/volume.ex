@@ -1,5 +1,5 @@
-defmodule Buckets.Strategy.Volume do
-  @behaviour Buckets.Strategy
+defmodule Buckets.Adapters.Volume do
+  @behaviour Buckets.Adapter
 
   @impl true
   def put(%Buckets.Object{} = object, remote_path, config) do

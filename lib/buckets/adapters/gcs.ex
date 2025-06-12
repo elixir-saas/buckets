@@ -1,25 +1,25 @@
-defmodule Buckets.Strategy.GCS do
+defmodule Buckets.Adapters.GCS do
   @moduledoc """
-  Google Cloud Storage strategy for Buckets.
+  Google Cloud Storage adapter for Buckets.
 
-  This strategy provides a native implementation for GCS operations using only
+  This adapter provides a native implementation for GCS operations using only
   the `:req` HTTP client, without dependencies on `:google_api_storage`, `:gcs_signed_url`, or `:goth`.
 
   ## Setup
 
-  To use this strategy, you need to start the `Buckets.Strategy.GCS.AuthSupervisor` in your application's
+  To use this adapter, you need to start the `Buckets.Adapters.GCS.AuthSupervisor` in your application's
   supervision tree to enable automatic token caching and refresh:
 
       children = [
         # ... your other processes
-        {Buckets.Strategy.GCS.AuthSupervisor, [cloud: MyApp.Cloud]}
+        {Buckets.Adapters.GCS.AuthSupervisor, [cloud: MyApp.Cloud]}
       ]
 
       Supervisor.start_link(children, opts)
 
   Alternatively, you can start it manually when needed:
 
-      {:ok, _pid} = Buckets.Strategy.GCS.AuthSupervisor.start_link(cloud: MyApp.Cloud)
+      {:ok, _pid} = Buckets.Adapters.GCS.AuthSupervisor.start_link(cloud: MyApp.Cloud)
 
   The supervisor will automatically manage authentication tokens for each unique set of
   service account credentials, refreshing them before they expire.
@@ -32,13 +32,13 @@ defmodule Buckets.Strategy.GCS do
       config :my_app, MyCloud,
         locations: [
           gcs_direct: [
-            strategy: Buckets.Strategy.GCS,
+            adapter: Buckets.Adapters.GCS,
             bucket: "my-bucket",
             path: "uploads",
             service_account_credentials: System.fetch_env!("GOOGLE_CREDENTIALS")
           ],
           gcs_from_file: [
-            strategy: Buckets.Strategy.GCS,
+            adapter: Buckets.Adapters.GCS,
             bucket: "my-bucket",
             path: "uploads",
             service_account_path: "path/to/service-account.json"
@@ -57,14 +57,14 @@ defmodule Buckets.Strategy.GCS do
   Tokens are refreshed 5 minutes before expiration to ensure uninterrupted service.
   """
 
-  @behaviour Buckets.Strategy
+  @behaviour Buckets.Adapter
 
   require Logger
 
   alias Buckets.Object
-  alias Buckets.Strategy.GCS.Auth
-  alias Buckets.Strategy.GCS.Signature
-  alias Buckets.Strategy.GCS.AuthSupervisor
+  alias Buckets.Adapters.GCS.Auth
+  alias Buckets.Adapters.GCS.Signature
+  alias Buckets.Adapters.GCS.AuthSupervisor
 
   @impl true
   def put(%Buckets.Object{} = object, remote_path, config) do

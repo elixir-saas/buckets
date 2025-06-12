@@ -12,8 +12,8 @@ Buckets provides a consistent API for uploading, downloading, and managing files
 
 Supports:
 
-- [x] File System ([`Buckets.Strategy.Volume`](./lib/buckets/strategy/volume.ex))
-- [x] Google Cloud Storage ([`Buckets.Strategy.GCS`](./lib/buckets/strategy/gcs.ex))
+- [x] File System ([`Buckets.Adapters.Volume`](./lib/buckets/adapters/volume.ex))
+- [x] Google Cloud Storage ([`Buckets.Adapters.GCS`](./lib/buckets/adapters/gcs.ex))
 - [x] Amazon S3
 - [ ] DigitalOcean
 - [ ] Fly.io Tigris
@@ -51,11 +51,11 @@ Full documentation at <https://hexdocs.pm/buckets>.
 
 The entrypoint to using Buckets is through a `Cloud`, which you declare in your application. Think of it like an Ecto Repo module, but instead of interfacing with a database, you're interfacing with remote cloud storage. Instead of mapping database rows to schema structs, it maps files to `Buckets.Object` structs.
 
-### Locations and Strategies
+### Locations and Adapters
 
 - **Locations** are named configurations (like `:local`, `:gcs`, `:production`) that define where and how files are stored
-- **Strategies** are the actual storage implementations (`Buckets.Strategy.Volume`, `Buckets.Strategy.GCS`, `Buckets.Strategy.S3`)
-- Each location specifies a strategy plus the configuration needed for that storage backend
+- **Adapters** are the actual storage implementations (`Buckets.Adapters.Volume`, `Buckets.Adapters.GCS`, `Buckets.Adapters.S3`)
+- Each location specifies an adapter plus the configuration needed for that storage backend
 
 ### Object Lifecycle
 
@@ -85,14 +85,14 @@ You must configure:
 
 ### 2. Configure your locations
 
-Each location requires a `:strategy` and strategy-specific configuration:
+Each location requires an `:adapter` and adapter-specific configuration:
 
 ```elixir
 config :my_app, MyApp.Cloud,
   locations: [
     # Local filesystem (for development)
     local: [
-      strategy: Buckets.Strategy.Volume,
+      adapter: Buckets.Adapters.Volume,
       bucket: "tmp/buckets_volume",
       base_url: "http://localhost:4000",
       endpoint: MyAppWeb.Endpoint  # Optional: for signed URL verification
@@ -100,21 +100,21 @@ config :my_app, MyApp.Cloud,
 
     # Google Cloud Storage
     gcs: [
-      strategy: Buckets.Strategy.GCS,
+      adapter: Buckets.Adapters.GCS,
       bucket: "my-app-production",
       service_account_credentials: System.fetch_env!("GOOGLE_CREDENTIALS")
     ],
 
     # Alternative: Load GCS credentials from file
     gcs_from_file: [
-      strategy: Buckets.Strategy.GCS,
+      adapter: Buckets.Adapters.GCS,
       bucket: "my-app-production",
       service_account_path: "path/to/service-account.json"
     ],
 
     # Amazon S3
     s3: [
-      strategy: Buckets.Strategy.S3,
+      adapter: Buckets.Adapters.S3,
       bucket: "my-app-production",
       region: "us-east-1",
       access_key_id: "AKIAIOSFODNN7EXAMPLE",

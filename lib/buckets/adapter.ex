@@ -1,4 +1,4 @@
-defmodule Buckets.Strategy do
+defmodule Buckets.Adapter do
   @callback put(Buckets.Object.t(), binary(), Keyword.t()) ::
               {:ok, map()} | {:error, term()}
 

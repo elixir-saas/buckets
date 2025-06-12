@@ -1,7 +1,7 @@
-defmodule Buckets.Strategy.S3Test do
+defmodule Buckets.Adapters.S3Test do
   use ExUnit.Case
 
-  alias Buckets.Strategy.S3
+  alias Buckets.Adapters.S3
 
   import Buckets.Setup
   import Buckets.UploadFixtures

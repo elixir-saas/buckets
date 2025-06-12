@@ -60,7 +60,7 @@ defmodule Buckets.Router.VolumeController do
   end
 
   defp validate_signature(conn, _opts) do
-    import Buckets.Strategy.Volume, only: [verify_signed_path: 3]
+    import Buckets.Adapters.Volume, only: [verify_signed_path: 3]
 
     location = conn.private.location
     config = conn.private.cloud_module.config_for(location)

@@ -1,7 +1,7 @@
-defmodule Buckets.Strategy.GCS.AuthTest do
+defmodule Buckets.Adapters.GCS.AuthTest do
   use ExUnit.Case, async: true
 
-  alias Buckets.Strategy.GCS.Auth
+  alias Buckets.Adapters.GCS.Auth
 
   describe "validate_credentials/1" do
     test "validates required fields are present" do

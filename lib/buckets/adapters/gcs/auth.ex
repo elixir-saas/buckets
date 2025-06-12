@@ -1,4 +1,4 @@
-defmodule Buckets.Strategy.GCS.Auth do
+defmodule Buckets.Adapters.GCS.Auth do
   @moduledoc """
   Google Cloud Storage authentication using service account credentials.
 

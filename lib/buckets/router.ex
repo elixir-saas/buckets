@@ -11,7 +11,7 @@ defmodule Buckets.Router do
       `buckets_volume/1` requires the :location option to be set.
 
           Set :location to the location that you have configured with
-          the `Buckets.Strategy.Volume` strategy.
+          the `Buckets.Adapters.Volume` adapter.
       """
     end
 

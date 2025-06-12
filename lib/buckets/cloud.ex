@@ -20,16 +20,16 @@ defmodule Buckets.Cloud do
         config :my_app, MyApp.Cloud,
           locations: [
             local: [
-              strategy: Buckets.Strategy.Volume,
-              # configure this strategy...
+              adapter: Buckets.Adapters.Volume,
+              # configure this adapter...
             ],
             gcs: [
-              strategy: Buckets.Strategy.GCS,
-              # configure this strategy...
+              adapter: Buckets.Adapters.GCS,
+              # configure this adapter...
             ],
             us_east_1: [
-              strategy: Buckets.Strategy.S3,
-              # configure this strategy...
+              adapter: Buckets.Adapters.S3,
+              # configure this adapter...
             ]
           ]
 

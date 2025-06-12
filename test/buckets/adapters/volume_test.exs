@@ -1,7 +1,7 @@
-defmodule Buckets.Strategy.VolumeTest do
+defmodule Buckets.Adapters.VolumeTest do
   use ExUnit.Case
 
-  alias Buckets.Strategy.Volume
+  alias Buckets.Adapters.Volume
 
   import Buckets.Setup
   import Buckets.UploadFixtures

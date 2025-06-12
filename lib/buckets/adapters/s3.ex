@@ -1,5 +1,5 @@
-defmodule Buckets.Strategy.S3 do
-  @behaviour Buckets.Strategy
+defmodule Buckets.Adapters.S3 do
+  @behaviour Buckets.Adapter
 
   require Logger
 

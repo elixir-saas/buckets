@@ -1,4 +1,4 @@
-defmodule Buckets.Strategy.GCS.Signature do
+defmodule Buckets.Adapters.GCS.Signature do
   @moduledoc """
   Google Cloud Storage V4 signed URL generation.
 
@@ -18,7 +18,7 @@ defmodule Buckets.Strategy.GCS.Signature do
   ## Examples
 
       iex> credentials = %{"client_email" => "test@example.com", "private_key" => "..."}
-      iex> Buckets.Strategy.GCS.Signature.generate_v4(credentials, "my-bucket", "path/to/object.jpg")
+      iex> Buckets.Adapters.GCS.Signature.generate_v4(credentials, "my-bucket", "path/to/object.jpg")
       {:ok, "https://storage.googleapis.com/my-bucket/path%2Fto%2Fobject.jpg?X-Goog-Algorithm=..."}
   """
   @spec generate_v4(map(), String.t(), String.t(), keyword()) ::

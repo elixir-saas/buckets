@@ -1,7 +1,7 @@
-defmodule Buckets.Strategy.GCSTest do
+defmodule Buckets.Adapters.GCSTest do
   use ExUnit.Case
 
-  alias Buckets.Strategy.GCS
+  alias Buckets.Adapters.GCS
 
   import Buckets.Setup
   import Buckets.UploadFixtures
