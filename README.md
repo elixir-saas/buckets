@@ -6,7 +6,9 @@
 
 # Buckets
 
-A solution for storing objects in buckets.
+A solution for storing files across multiple cloud storage providers with Phoenix integration.
+
+Buckets provides a consistent API for uploading, downloading, and managing files whether you're using local filesystem storage for development, Google Cloud Storage, Amazon S3, or other cloud providers. It handles the complexity of different storage backends while offering advanced features like signed URLs, direct client uploads, and seamless Phoenix LiveView integration.
 
 Supports:
 
@@ -26,6 +28,7 @@ Features:
 - [x] Dev env router
 - [ ] Streaming uploads
 - [ ] Streaming downloads
+- [ ] Automatic retry logic
 - [ ] Telemetry
 
 ## Installation
@@ -35,21 +38,37 @@ Install by adding `buckets` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:buckets, github: "https://github.com/elixir-saas/buckets"}
+    {:buckets, "~> 1.0.0-rc.0"}
   ]
 end
 ```
 
 Full documentation at <https://hexdocs.pm/buckets>.
 
+## Core Concepts
+
+### Cloud Module
+
+The entrypoint to using Buckets is through a `Cloud`, which you declare in your application. Think of it like an Ecto Repo module, but instead of interfacing with a database, you're interfacing with remote cloud storage. Instead of mapping database rows to schema structs, it maps files to `Buckets.Object` structs.
+
+### Locations and Strategies
+
+- **Locations** are named configurations (like `:local`, `:gcs`, `:production`) that define where and how files are stored
+- **Strategies** are the actual storage implementations (`Buckets.Strategy.Volume`, `Buckets.Strategy.GCS`, `Buckets.Strategy.S3`)
+- Each location specifies a strategy plus the configuration needed for that storage backend
+
+### Object Lifecycle
+
+`Buckets.Object` structs represent files and have several states:
+
+- **Not stored** (`stored?: false`) - File exists locally but hasn't been uploaded to cloud storage
+- **Stored** (`stored?: true`) - File has been uploaded and has a remote location
+- **Data loaded** - File data is available in memory or as a local file
+- **Data not loaded** - Only metadata is available, data must be fetched from remote storage
+
 ## Getting started
 
-The entrypoint to using Buckets is through a Cloud module, which you declare in
-your application. Think of it like an Ecto Repo module, but instead of interfacing
-with a database, you're interfacing with a remote cloud bucket. And instead of
-mapping data in rows to schema structs, it maps data in files to Object structs.
-
-Here's how you set up your Cloud module:
+### 1. Create your Cloud module
 
 ```elixir
 defmodule MyApp.Cloud do
@@ -59,10 +78,12 @@ defmodule MyApp.Cloud do
 end
 ```
 
-Notice that in addition to configuring an `:otp_app`, you also must configure a
-`:default_location`. "Locations" are sets of configuration that authenticate your
-application to access different buckets. For convenience, a Cloud module has a
-default, but a specific location can be specified at any time.
+You must configure:
+
+- `:otp_app` - Your application name for reading configuration
+- `:default_location` - Which location to use when none is specified
+
+### 2. Configure your locations
 
 Here's how you can configure locations:
 
