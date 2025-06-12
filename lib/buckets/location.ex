@@ -1,4 +1,6 @@
 defmodule Buckets.Location do
+  @derive {Inspect, except: [:config]}
+
   @type t :: %__MODULE__{
           path: String.t(),
           config: Keyword.t()
