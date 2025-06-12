@@ -46,7 +46,7 @@ defmodule Buckets.Strategy.S3Test do
     remote_path = "test/objects/#{context.scope}/simple.pdf"
 
     expected_url =
-      "https://s3.us-east-2.amazonaws.com/ex-buckets-test/test/objects/#{context.scope}/simple.pdf?"
+      "https://ex-buckets-test.s3.amazonaws.com/test/objects/#{context.scope}/simple.pdf?"
 
     assert {:ok, data} = S3.url(remote_path, @s3_opts)
     assert data.url =~ expected_url

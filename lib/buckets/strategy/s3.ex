@@ -7,31 +7,37 @@ defmodule Buckets.Strategy.S3 do
 
   @impl true
   def put(%Buckets.Object{} = object, remote_path, config) do
-    region = Keyword.fetch!(config, :region)
+    req = build_req(config)
     bucket = Keyword.fetch!(config, :bucket)
 
     data = Object.read!(object)
-
     content_type = object.metadata[:content_type] || "application/octet-stream"
 
-    case ExAws.S3.put_object(bucket, remote_path, data, content_type: content_type)
-         |> ExAws.request(region: region) do
-      {:ok, response} -> {:ok, response}
+    case Req.put(req,
+           url: "s3://#{bucket}/#{remote_path}",
+           body: data,
+           headers: [{"content-type", content_type}]
+         ) do
+      {:ok, %{status: status}} when status in 200..299 -> {:ok, %{}}
+      {:ok, response} -> {:error, response}
       {:error, reason} -> {:error, reason}
     end
   end
 
   @impl true
   def get(remote_path, config) do
-    region = Keyword.fetch!(config, :region)
+    req = build_req(config)
     bucket = Keyword.fetch!(config, :bucket)
 
-    case ExAws.S3.get_object(bucket, remote_path) |> ExAws.request(region: region) do
-      {:ok, response} ->
-        {:ok, response.body}
+    case Req.get(req, url: "s3://#{bucket}/#{remote_path}") do
+      {:ok, %{status: 200, body: body}} ->
+        {:ok, body}
 
-      {:error, {:http_error, 404, _}} ->
+      {:ok, %{status: 404}} ->
         {:error, :not_found}
+
+      {:ok, response} ->
+        {:error, response}
 
       {:error, reason} ->
         {:error, reason}
@@ -40,68 +46,72 @@ defmodule Buckets.Strategy.S3 do
 
   @impl true
   def delete(remote_path, config) do
-    region = Keyword.fetch!(config, :region)
+    req = build_req(config)
     bucket = Keyword.fetch!(config, :bucket)
 
-    case ExAws.S3.delete_object(bucket, remote_path) |> ExAws.request(region: region) do
-      {:ok, response} -> {:ok, response}
+    case Req.delete(req, url: "s3://#{bucket}/#{remote_path}") do
+      {:ok, %{status: status}} when status in 200..299 -> {:ok, %{}}
+      {:ok, response} -> {:error, response}
       {:error, reason} -> {:error, reason}
     end
   end
 
   @impl true
   def url(remote_path, config) do
-    if config[:for_upload] == true and config[:s3_signed_url] == nil do
-      Logger.warning("""
-      Whan generating a S3 signed URL for direct upload, always include
-      a `:s3_signed_url` option, for example:
-
-          gcs_signed_url: [method: :put, expires: 900]
-
-      Otherwise, S3 will reject the PUT request to store the file on upload.
-      """)
-    end
-
-    region = Keyword.fetch!(config, :region)
     bucket = Keyword.fetch!(config, :bucket)
 
-    signed_url_config = Keyword.get(config, :s3_signed_url, [])
+    opts =
+      if config[:for_upload] == true do
+        [method: :put, expires: 900]
+      else
+        [method: :get, expires: 60]
+      end
 
-    case ExAws.S3.presigned_url(
-           ExAws.Config.new(:s3, region: region),
-           Keyword.get(signed_url_config, :method, :get),
-           bucket,
-           remote_path,
-           Keyword.put_new(signed_url_config, :expires_in, 3600)
-         ) do
-      {:ok, signed_url} ->
-        location = %Buckets.Location{path: remote_path, config: config}
-        {:ok, %Buckets.SignedURL{url: signed_url, location: location}}
+    presign_opts = [
+      bucket: bucket,
+      key: remote_path,
+      access_key_id: Keyword.fetch!(config, :access_key_id),
+      secret_access_key: Keyword.fetch!(config, :secret_access_key),
+      region: Keyword.fetch!(config, :region)
+    ]
 
-      {:error, reason} ->
-        {:error, reason}
-    end
+    presign_opts =
+      if endpoint_url = config[:endpoint_url] do
+        Keyword.put(presign_opts, :endpoint_url, endpoint_url)
+      else
+        presign_opts
+      end
+
+    presign_opts =
+      presign_opts
+      |> Keyword.merge(opts)
+      |> Keyword.merge(config[:s3_signed_url] || [])
+
+    signed_url = ReqS3.presign_url(presign_opts)
+
+    location = %Buckets.Location{path: remote_path, config: config}
+    {:ok, %Buckets.SignedURL{url: signed_url, location: location}}
   end
 
-  # def headers(remote_path, config) do
-  #   region = Keyword.fetch!(config, :region)
-  #   bucket = Keyword.fetch!(config, :bucket)
+  ## Private
 
-  #   case ExAws.S3.head_object(bucket, remote_path) |> ExAws.request(region: region) do
-  #     {:ok, response} ->
-  #       headers = Map.new(response.headers)
+  defp build_req(config) do
+    opts = [
+      aws_sigv4: [
+        access_key_id: Keyword.fetch!(config, :access_key_id),
+        secret_access_key: Keyword.fetch!(config, :secret_access_key),
+        region: Keyword.fetch!(config, :region)
+      ]
+    ]
 
-  #       {:ok,
-  #        %{
-  #          content_size: headers["Content-Length"],
-  #          content_type: headers["Content-Type"]
-  #        }}
+    # Add endpoint URL if provided (for S3-compatible services)
+    opts =
+      if endpoint_url = config[:endpoint_url] do
+        Keyword.put(opts, :aws_endpoint_url_s3, endpoint_url)
+      else
+        opts
+      end
 
-  #     {:error, {:http_error, 404, _}} ->
-  #       {:error, :not_found}
-
-  #     {:error, reason} ->
-  #       {:error, reason}
-  #   end
-  # end
+    Req.new() |> ReqS3.attach(opts)
+  end
 end

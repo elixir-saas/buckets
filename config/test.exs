@@ -1,9 +1,5 @@
 import Config
 
-config :ex_aws,
-  access_key_id: [File.read!("secret/AWS_ACCESS_KEY_ID"), :instance_role],
-  secret_access_key: [File.read!("secret/AWS_SECRET_ACCESS_KEY"), :instance_role]
-
 config :buckets, TestCloud,
   locations: [
     local: [
@@ -28,6 +24,8 @@ config :buckets, TestCloud,
       strategy: Buckets.Strategy.S3,
       region: "us-east-2",
       bucket: "ex-buckets-test",
-      path: "test/objects"
+      path: "test/objects",
+      access_key_id: File.read!("secret/AWS_ACCESS_KEY_ID"),
+      secret_access_key: File.read!("secret/AWS_SECRET_ACCESS_KEY")
     ]
   ]
