@@ -7,6 +7,7 @@ defmodule Buckets.Strategy.GCSTest do
   import Buckets.UploadFixtures
 
   @gcs_opts Application.compile_env!(:buckets, TestCloud)[:locations][:google]
+            |> Keyword.put(:__location_key__, :google)
 
   setup :setup_scope
 
@@ -45,11 +46,11 @@ defmodule Buckets.Strategy.GCSTest do
 
     remote_path = "test/objects/#{context.scope}/simple.pdf"
 
-    expected_url =
-      "https://storage.googleapis.com/#{@gcs_opts[:bucket]}/test/objects/#{context.scope}/simple.pdf?"
+    expected_url_start =
+      "https://storage.googleapis.com/#{@gcs_opts[:bucket]}/test%2Fobjects%2F#{context.scope}%2Fsimple.pdf?"
 
     assert {:ok, data} = GCS.url(remote_path, @gcs_opts)
-    assert data.url =~ expected_url
+    assert String.starts_with?(data.url, expected_url_start)
   end
 
   @tag :live
@@ -61,6 +62,6 @@ defmodule Buckets.Strategy.GCSTest do
     remote_path = "test/objects/#{context.scope}/simple.pdf"
 
     assert {:ok, _response} = GCS.delete(remote_path, @gcs_opts)
-    assert {:error, "No such object:" <> _} = GCS.get(remote_path, @gcs_opts)
+    assert {:error, :not_found} = GCS.get(remote_path, @gcs_opts)
   end
 end

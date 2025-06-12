@@ -1,41 +1,89 @@
 defmodule Buckets.Strategy.GCS do
+  @moduledoc """
+  Google Cloud Storage strategy for Buckets.
+
+  This strategy provides a native implementation for GCS operations using only
+  the `:req` HTTP client, without dependencies on `:google_api_storage`, `:gcs_signed_url`, or `:goth`.
+
+  ## Setup
+
+  To use this strategy, you need to start the `Buckets.Strategy.GCS.AuthSupervisor` in your application's
+  supervision tree to enable automatic token caching and refresh:
+
+      children = [
+        # ... your other processes
+        {Buckets.Strategy.GCS.AuthSupervisor, [cloud: MyApp.Cloud]}
+      ]
+
+      Supervisor.start_link(children, opts)
+
+  Alternatively, you can start it manually when needed:
+
+      {:ok, _pid} = Buckets.Strategy.GCS.AuthSupervisor.start_link(cloud: MyApp.Cloud)
+
+  The supervisor will automatically manage authentication tokens for each unique set of
+  service account credentials, refreshing them before they expire.
+
+  ## Configuration
+
+  You can configure GCS locations using either service account credentials as a JSON string
+  or by providing a path to a service account JSON file:
+
+      config :my_app, MyCloud,
+        locations: [
+          gcs_direct: [
+            strategy: Buckets.Strategy.GCS,
+            bucket: "my-bucket",
+            path: "uploads",
+            service_account_credentials: System.fetch_env!("GOOGLE_CREDENTIALS")
+          ],
+          gcs_from_file: [
+            strategy: Buckets.Strategy.GCS,
+            bucket: "my-bucket",
+            path: "uploads",
+            service_account_path: "path/to/service-account.json"
+          ]
+        ]
+
+  The `:service_account_credentials` option accepts a JSON string, making it easy to pass
+  credentials via environment variables:
+
+      service_account_credentials: System.get_env("GCS_SERVICE_ACCOUNT_JSON")
+
+  ## Performance
+
+  This implementation automatically caches and refreshes Google Cloud access tokens,
+  significantly reducing latency compared to generating new tokens for each request.
+  Tokens are refreshed 5 minutes before expiration to ensure uninterrupted service.
+  """
+
   @behaviour Buckets.Strategy
 
   require Logger
 
-  alias GoogleApi.Storage.V1.Api.Objects
-  alias GoogleApi.Storage.V1.Model.Object
+  alias Buckets.Object
+  alias Buckets.Strategy.GCS.Auth
+  alias Buckets.Strategy.GCS.Signature
+  alias Buckets.Strategy.GCS.AuthSupervisor
 
   @impl true
-  def put(%Buckets.Object{data: {:file, path}} = object, remote_path, config) do
+  def put(%Buckets.Object{} = object, remote_path, config) do
     bucket = Keyword.fetch!(config, :bucket)
-    goth_server = Keyword.fetch!(config, :goth_server)
 
-    metadata = %Object{
-      name: remote_path,
-      contentType: object.metadata.content_type
-    }
+    data = Object.read!(object)
+    content_type = object.metadata[:content_type] || "application/octet-stream"
 
-    with {:ok, conn} <- auth(goth_server),
-         {:ok, response} <-
-           Objects.storage_objects_insert_simple(conn, bucket, "multipart", metadata, path) do
-      {:ok, response}
-    else
-      error -> handle_error(error)
+    with {:ok, access_token} <- AuthSupervisor.get_token(config) do
+      do_put(access_token, bucket, remote_path, data, content_type)
     end
   end
 
   @impl true
   def get(remote_path, config) do
     bucket = Keyword.fetch!(config, :bucket)
-    goth_server = Keyword.fetch!(config, :goth_server)
 
-    with {:ok, conn} <- auth(goth_server),
-         {:ok, %{status: 200, body: data}} <-
-           Objects.storage_objects_get(conn, bucket, remote_path, [alt: "media"], []) do
-      {:ok, data}
-    else
-      error -> handle_error(error)
+    with {:ok, access_token} <- AuthSupervisor.get_token(config) do
+      do_get(access_token, bucket, remote_path)
     end
   end
 
@@ -57,70 +105,112 @@ defmodule Buckets.Strategy.GCS do
   @impl true
   def url(remote_path, config) do
     bucket = Keyword.fetch!(config, :bucket)
-    goth_server = Keyword.fetch!(config, :goth_server)
-    service_account = Keyword.fetch!(config, :service_account)
 
-    case Goth.fetch(goth_server) do
-      {:ok, %{token: access_token}} ->
-        oauth_config = %GcsSignedUrl.SignBlob.OAuthConfig{
-          service_account: service_account,
-          access_token: access_token
-        }
-
-        opts =
-          if config[:for_upload] == true do
-            [verb: "PUT", expires: 900]
-          else
-            [expires: 60]
-          end
-
-        GcsSignedUrl.generate_v4(
-          oauth_config,
-          bucket,
-          remote_path,
-          Keyword.merge(opts, config[:gcs_signed_url] || [])
-        )
-        |> case do
-          {:ok, signed_url} ->
-            location = %Buckets.Location{path: remote_path, config: config}
-            {:ok, %Buckets.SignedURL{url: signed_url, location: location}}
-
-          {:error, reason} ->
-            {:error, reason}
+    with {:ok, credentials} <- Auth.get_credentials(config) do
+      opts =
+        if config[:for_upload] == true do
+          [verb: "PUT", expires: 900]
+        else
+          [verb: "GET", expires: 3600]
         end
 
-      error ->
-        handle_error(error)
+      opts = Keyword.merge(opts, config[:gcs_signed_url] || [])
+
+      case Signature.generate_v4(credentials, bucket, remote_path, opts) do
+        {:ok, signed_url} ->
+          location = %Buckets.Location{path: remote_path, config: config}
+          {:ok, %Buckets.SignedURL{url: signed_url, location: location}}
+
+        {:error, reason} ->
+          {:error, reason}
+      end
     end
   end
 
   @impl true
   def delete(remote_path, config) do
     bucket = Keyword.fetch!(config, :bucket)
-    goth_server = Keyword.fetch!(config, :goth_server)
 
-    with {:ok, conn} <- auth(goth_server),
-         {:ok, %{status: 204} = response} <-
-           Objects.storage_objects_delete(conn, bucket, remote_path) do
-      {:ok, response}
-    else
-      error -> handle_error(error)
+    with {:ok, access_token} <- AuthSupervisor.get_token(config) do
+      do_delete(access_token, bucket, remote_path)
     end
   end
 
   ## Private
 
-  defp auth(goth_server) do
-    with {:ok, token} <- Goth.fetch(goth_server) do
-      {:ok, GoogleApi.Storage.V1.Connection.new(token.token)}
+  defp do_put(access_token, bucket, object_name, data, content_type) do
+    url = "https://storage.googleapis.com/upload/storage/v1/b/#{bucket}/o"
+
+    headers = [
+      {"authorization", "Bearer #{access_token}"},
+      {"content-type", content_type}
+    ]
+
+    params = [
+      {"uploadType", "media"},
+      {"name", object_name}
+    ]
+
+    case Req.post(url, body: data, headers: headers, params: params) do
+      {:ok, %{status: status, body: body}} when status in 200..299 ->
+        {:ok, body}
+
+      {:ok, %{status: 404}} ->
+        {:error, :not_found}
+
+      {:ok, %{status: status, body: body}} ->
+        {:error, {:http_error, status, body}}
+
+      {:error, reason} ->
+        {:error, {:request_failed, reason}}
     end
   end
 
-  defp handle_error({:error, %Tesla.Env{status: 404, body: body}}) do
-    {:error, body}
+  defp do_get(access_token, bucket, object_name) do
+    url =
+      "https://storage.googleapis.com/storage/v1/b/#{bucket}/o/#{URI.encode(object_name, &URI.char_unreserved?/1)}"
+
+    headers = [
+      {"authorization", "Bearer #{access_token}"}
+    ]
+
+    params = [{"alt", "media"}]
+
+    case Req.get(url, headers: headers, params: params) do
+      {:ok, %{status: 200, body: body}} ->
+        {:ok, body}
+
+      {:ok, %{status: 404}} ->
+        {:error, :not_found}
+
+      {:ok, %{status: status, body: body}} ->
+        {:error, {:http_error, status, body}}
+
+      {:error, reason} ->
+        {:error, {:request_failed, reason}}
+    end
   end
 
-  defp handle_error({:error, %Tesla.Env{status: 500, body: body}}) do
-    {:error, Jason.decode!(body)}
+  defp do_delete(access_token, bucket, object_name) do
+    url =
+      "https://storage.googleapis.com/storage/v1/b/#{bucket}/o/#{URI.encode(object_name, &URI.char_unreserved?/1)}"
+
+    headers = [
+      {"authorization", "Bearer #{access_token}"}
+    ]
+
+    case Req.delete(url, headers: headers) do
+      {:ok, %{status: status}} when status in 200..299 ->
+        {:ok, %{}}
+
+      {:ok, %{status: 404}} ->
+        {:error, :not_found}
+
+      {:ok, %{status: status, body: body}} ->
+        {:error, {:http_error, status, body}}
+
+      {:error, reason} ->
+        {:error, {:request_failed, reason}}
+    end
   end
 end

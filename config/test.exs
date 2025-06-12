@@ -1,5 +1,7 @@
 import Config
 
+config :logger, :level, :warning
+
 config :buckets, TestCloud,
   locations: [
     local: [
@@ -17,8 +19,7 @@ config :buckets, TestCloud,
       strategy: Buckets.Strategy.GCS,
       bucket: "ex-buckets-test",
       path: "test/objects",
-      service_account: "buckets-test@elixir-saas.iam.gserviceaccount.com",
-      goth_server: GothTest
+      service_account_path: "secret/elixir-saas-82a32641f1b6.json"
     ],
     amazon: [
       strategy: Buckets.Strategy.S3,

@@ -238,8 +238,14 @@ defmodule Buckets.Cloud do
 
       ## Config
 
+      def locations(), do: config(:locations)
+
       def config_for(:default), do: config_for(unquote(default_location))
-      def config_for(location), do: Keyword.fetch!(config(:locations), location)
+
+      def config_for(location) do
+        config = Keyword.fetch!(config(:locations), location)
+        Keyword.put(config, :__location_key__, location)
+      end
 
       defp config(key), do: Keyword.fetch!(config(), key)
       defp config(), do: Application.fetch_env!(unquote(otp_app), __MODULE__)

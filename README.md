@@ -85,24 +85,43 @@ You must configure:
 
 ### 2. Configure your locations
 
-Here's how you can configure locations:
+Each location requires a `:strategy` and strategy-specific configuration:
 
 ```elixir
 config :my_app, MyApp.Cloud,
   locations: [
+    # Local filesystem (for development)
     local: [
       strategy: Buckets.Strategy.Volume,
-      # configure this strategy...
+      bucket: "tmp/buckets_volume",
+      base_url: "http://localhost:4000",
+      endpoint: MyAppWeb.Endpoint  # Optional: for signed URL verification
     ],
+
+    # Google Cloud Storage
     gcs: [
       strategy: Buckets.Strategy.GCS,
-      # configure this strategy...
+      bucket: "my-app-production",
+      service_account_credentials: System.fetch_env!("GOOGLE_CREDENTIALS")
+    ],
+
+    # Alternative: Load GCS credentials from file
+    gcs_from_file: [
+      strategy: Buckets.Strategy.GCS,
+      bucket: "my-app-production",
+      service_account_path: "path/to/service-account.json"
+    ],
+
+    # Amazon S3
+    s3: [
+      strategy: Buckets.Strategy.S3,
+      bucket: "my-app-production",
+      region: "us-east-1",
+      access_key_id: "AKIAIOSFODNN7EXAMPLE",
+      secret_access_key: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
     ]
   ]
 ```
-
-A `:strategy` is required, additional configuration options for each strategy can be
-found in the docs for the strategy module itself.
 
 Now that everything is configured, we can start inserting objects. The simplest possible
 way to do this is to upload a file from a path:
