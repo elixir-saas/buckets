@@ -56,17 +56,6 @@ defmodule Buckets.Strategy.GCS do
   """
   @impl true
   def url(remote_path, config) do
-    if config[:for_upload] == true and config[:gcs_signed_url] == nil do
-      Logger.warning("""
-      Whan generating a Google Cloud Storage signed URL for direct upload, always
-      include a `:gcs_signed_url` option, for example:
-
-          gcs_signed_url: [verb: "PUT", expires: 900]
-
-      Otherwise, GCS will reject the PUT request to store the file on upload.
-      """)
-    end
-
     bucket = Keyword.fetch!(config, :bucket)
     goth_server = Keyword.fetch!(config, :goth_server)
     service_account = Keyword.fetch!(config, :service_account)
@@ -78,11 +67,18 @@ defmodule Buckets.Strategy.GCS do
           access_token: access_token
         }
 
+        opts =
+          if config[:for_upload] == true do
+            [verb: "PUT", expires: 900]
+          else
+            [expires: 60]
+          end
+
         GcsSignedUrl.generate_v4(
           oauth_config,
           bucket,
           remote_path,
-          Keyword.get(config, :gcs_signed_url, expires: 60)
+          Keyword.merge(opts, config[:gcs_signed_url] || [])
         )
         |> case do
           {:ok, signed_url} ->
