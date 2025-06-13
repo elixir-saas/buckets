@@ -1,4 +1,7 @@
 defmodule Buckets.Adapter do
+  @callback validate_config(Keyword.t()) ::
+              {:ok, Keyword.t()} | {:error, term()}
+
   @callback put(Buckets.Object.t(), binary(), Keyword.t()) ::
               {:ok, map()} | {:error, term()}
 
@@ -10,4 +13,16 @@ defmodule Buckets.Adapter do
 
   @callback delete(binary(), Keyword.t()) ::
               {:ok, map()} | {:error, term()}
+
+  ## Helpers
+
+  @spec validate_required(Keyword.t(), list()) :: {:ok, Keyword.t()} | {:error, list()}
+  def validate_required(config, required) do
+    missing =
+      Enum.reduce(required, [], fn key, missing ->
+        if Keyword.has_key?(config, key), do: missing, else: [key | missing]
+      end)
+
+    if missing == [], do: {:ok, config}, else: {:error, Enum.reverse(missing)}
+  end
 end

@@ -6,6 +6,33 @@ defmodule Buckets.Adapters.S3 do
   alias Buckets.Object
 
   @impl true
+  def validate_config(config) do
+    validate_result =
+      Keyword.validate(config, [
+        :adapter,
+        :bucket,
+        :path,
+        :access_key_id,
+        :secret_access_key,
+        provider: :aws,
+        region: "auto"
+      ])
+
+    with {:ok, config} <- validate_result do
+      provider_defaults =
+        case Keyword.fetch!(config, :provider) do
+          :aws -> []
+          :tigris -> [endpoint_url: "https://fly.storage.tigris.dev"]
+          provider -> raise "Unknown S3 provider: #{inspect(provider)}"
+        end
+
+      provider_defaults
+      |> Keyword.merge(config)
+      |> Buckets.Adapter.validate_required([:bucket, :access_key_id, :secret_access_key, :region])
+    end
+  end
+
+  @impl true
   def put(%Buckets.Object{} = object, remote_path, config) do
     req = build_req(config)
     bucket = Keyword.fetch!(config, :bucket)

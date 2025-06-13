@@ -56,4 +56,45 @@ defmodule Buckets.Adapters.VolumeTest do
 
     refute File.exists?(bucket_path)
   end
+
+  describe "validate_config/1" do
+    test "accepts valid config" do
+      config = [
+        adapter: Volume,
+        bucket: "/tmp/test-bucket"
+      ]
+
+      assert {:ok, result} = Volume.validate_config(config)
+      assert Enum.sort(result) == Enum.sort(config)
+    end
+
+    test "accepts valid config with optional fields" do
+      config = [
+        adapter: Volume,
+        bucket: "/tmp/test-bucket",
+        endpoint: MyEndpoint,
+        base_url: "http://localhost:4000",
+        path: "/custom/path"
+      ]
+
+      assert {:ok, result} = Volume.validate_config(config)
+      assert Enum.sort(result) == Enum.sort(config)
+    end
+
+    test "rejects config missing required fields" do
+      config = [adapter: Volume]
+
+      assert {:error, _} = Volume.validate_config(config)
+    end
+
+    test "rejects config with unknown fields" do
+      config = [
+        adapter: Volume,
+        bucket: "/tmp/test-bucket",
+        unknown_field: "value"
+      ]
+
+      assert {:error, _} = Volume.validate_config(config)
+    end
+  end
 end

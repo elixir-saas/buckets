@@ -255,8 +255,21 @@ defmodule Buckets.Cloud do
       def config_for(:default), do: config_for(unquote(default_location))
 
       def config_for(location) do
-        config = Keyword.fetch!(config(:locations), location)
-        Keyword.put(config, :__location_key__, location)
+        config =
+          Keyword.get(config(:locations), location) ||
+            raise "No location config found for key #{inspect(location)}"
+
+        adapter =
+          config[:adapter] ||
+            raise "Location config must always include an :adapter value."
+
+        case adapter.validate_config(config) do
+          {:ok, config} ->
+            Keyword.put(config, :__location_key__, location)
+
+          {:error, invalid_keys} ->
+            raise "Invalid or missing keys in location config: #{inspect(invalid_keys)}"
+        end
       end
 
       defp config(key), do: Keyword.fetch!(config(), key)

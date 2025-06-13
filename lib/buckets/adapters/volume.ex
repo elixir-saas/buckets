@@ -2,6 +2,22 @@ defmodule Buckets.Adapters.Volume do
   @behaviour Buckets.Adapter
 
   @impl true
+  def validate_config(config) do
+    validate_result =
+      Keyword.validate(config, [
+        :adapter,
+        :bucket,
+        :path,
+        :endpoint,
+        :base_url
+      ])
+
+    with {:ok, config} <- validate_result do
+      Buckets.Adapter.validate_required(config, [:bucket])
+    end
+  end
+
+  @impl true
   def put(%Buckets.Object{} = object, remote_path, config) do
     target_path = target_path(remote_path, config)
 

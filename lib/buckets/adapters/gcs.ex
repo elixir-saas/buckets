@@ -65,6 +65,26 @@ defmodule Buckets.Adapters.GCS do
   alias Buckets.Adapters.GCS.AuthServer
 
   @impl true
+  def validate_config(config) do
+    validate_result =
+      Keyword.validate(config, [
+        :adapter,
+        :bucket,
+        :path,
+        :service_account_path,
+        :service_account_credentials
+      ])
+
+    with {:ok, config} <- validate_result do
+      if config[:service_account_path] || config[:service_account_credentials] do
+        Buckets.Adapter.validate_required(config, [:bucket])
+      else
+        {:error, [:service_account_path, :service_account_credentials]}
+      end
+    end
+  end
+
+  @impl true
   def put(%Buckets.Object{} = object, remote_path, config) do
     bucket = Keyword.fetch!(config, :bucket)
 
