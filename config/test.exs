@@ -37,6 +37,15 @@ config :buckets, TestCloud,
       access_key_id: File.read!("secret/digitalocean/AWS_ACCESS_KEY_ID"),
       secret_access_key: File.read!("secret/digitalocean/AWS_SECRET_ACCESS_KEY")
     ],
+    cloudflare_r2: [
+      adapter: Buckets.Adapters.S3,
+      provider: :cloudflare_r2,
+      endpoint_url: "https://261f9f435619b5b4c8fd3bd26cac7bff.r2.cloudflarestorage.com",
+      bucket: "ex-buckets-test",
+      path: "test/objects",
+      access_key_id: File.read!("secret/cloudflare/AWS_ACCESS_KEY_ID"),
+      secret_access_key: File.read!("secret/cloudflare/AWS_SECRET_ACCESS_KEY")
+    ],
     fly_tigris: [
       adapter: Buckets.Adapters.S3,
       provider: :tigris,

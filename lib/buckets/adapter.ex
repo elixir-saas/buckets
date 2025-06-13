@@ -19,7 +19,9 @@ defmodule Buckets.Adapter do
   @spec validate_required(Keyword.t(), list()) :: {:ok, Keyword.t()} | {:error, list()}
   def validate_required(config, required) do
     missing =
-      Enum.reduce(required, [], fn key, missing ->
+      required
+      |> Enum.reject(&is_nil/1)
+      |> Enum.reduce([], fn key, missing ->
         if Keyword.has_key?(config, key), do: missing, else: [key | missing]
       end)
 

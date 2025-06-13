@@ -23,14 +23,21 @@ defmodule Buckets.Adapters.S3 do
       provider_defaults =
         case Keyword.fetch!(config, :provider) do
           :aws -> []
+          :cloudflare_r2 -> [region: "auto"]
           :digitalocean -> [endpoint_url: "https://nyc3.digitaloceanspaces.com", region: "nyc3"]
           :tigris -> [endpoint_url: "https://fly.storage.tigris.dev"]
           provider -> raise "Unknown S3 provider: #{inspect(provider)}"
         end
 
-      provider_defaults
-      |> Keyword.merge(config)
-      |> Buckets.Adapter.validate_required([:bucket, :access_key_id, :secret_access_key, :region])
+      config = Keyword.merge(provider_defaults, config)
+
+      Buckets.Adapter.validate_required(config, [
+        :bucket,
+        :access_key_id,
+        :secret_access_key,
+        :region,
+        if(config[:provider] != :aws, do: :endpoint_url)
+      ])
     end
   end
 
