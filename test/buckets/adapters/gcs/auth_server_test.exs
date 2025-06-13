@@ -1,7 +1,7 @@
 defmodule Buckets.Adapters.GCS.AuthServerTest do
   use ExUnit.Case
 
-  alias Buckets.Adapters.GCS.AuthSupervisor
+  alias Buckets.Adapters.GCS.AuthServer
 
   setup do
     # Use fake credentials for testing
@@ -15,12 +15,12 @@ defmodule Buckets.Adapters.GCS.AuthServerTest do
 
   describe "supervisor behavior" do
     test "supervisor starts successfully with TestCloud" do
-      # The supervisor should already be started in test_helper.exs
+      # The TestCloud supervisor should already be started in test_helper.exs
       # Check that it's running
-      assert Process.whereis(Buckets.Adapters.GCS.AuthSupervisor) != nil
+      assert Process.whereis(TestCloud.Supervisor) != nil
 
       # Check that it has started child processes for GCS locations
-      children = Supervisor.which_children(Buckets.Adapters.GCS.AuthSupervisor)
+      children = Supervisor.which_children(TestCloud.Supervisor)
 
       # Should have at least one child for the GCS configuration in test.exs
       assert length(children) >= 1
@@ -42,7 +42,7 @@ defmodule Buckets.Adapters.GCS.AuthServerTest do
 
       # Should be able to get tokens from servers started by supervisor
       # This will work because we have the :google location configured in test.exs
-      result = AuthSupervisor.get_token(config)
+      result = AuthServer.get_token_from_config(config)
 
       # Should either get a token or an error (but not a server not found error)
       assert match?({:ok, _}, result) or match?({:error, {:jwt_generation_failed, _}}, result) or
@@ -88,7 +88,7 @@ defmodule Buckets.Adapters.GCS.AuthServerTest do
   end
 
   describe "error handling" do
-    test "handles missing location key gracefully" do
+    test "raises on missing location key" do
       # Config without location key should fail
       config = [
         adapter: Buckets.Adapters.GCS,
@@ -96,10 +96,14 @@ defmodule Buckets.Adapters.GCS.AuthServerTest do
         service_account_path: "some-path.json"
       ]
 
-      assert {:error, {:location_key_missing, _}} = AuthSupervisor.get_token(config)
+      message = "Missing :__location_key__ in location configuration.\n"
+
+      assert_raise RuntimeError, message, fn ->
+        AuthServer.get_token_from_config(config)
+      end
     end
 
-    test "handles missing auth server gracefully" do
+    test "raises on missing auth server" do
       # Config with non-existent location key should fail
       config = [
         adapter: Buckets.Adapters.GCS,
@@ -108,7 +112,11 @@ defmodule Buckets.Adapters.GCS.AuthServerTest do
         __location_key__: :nonexistent_location
       ]
 
-      assert {:error, {:auth_server_not_found, _}} = AuthSupervisor.get_token(config)
+      message = "No AuthServer running for location :nonexistent_location.\n"
+
+      assert_raise RuntimeError, message, fn ->
+        AuthServer.get_token_from_config(config)
+      end
     end
   end
 
@@ -131,7 +139,7 @@ defmodule Buckets.Adapters.GCS.AuthServerTest do
       assert match?({:ok, _}, result) or match?({:error, _}, result)
     end
 
-    test "fails gracefully with missing location key" do
+    test "raises with missing location key" do
       config = [
         adapter: Buckets.Adapters.GCS,
         bucket: "test-bucket",
@@ -141,9 +149,11 @@ defmodule Buckets.Adapters.GCS.AuthServerTest do
 
       object = %Buckets.Object{data: {:data, "test data"}, filename: "test.txt"}
 
-      # Should fail with location key missing error
-      result = Buckets.Adapters.GCS.put(object, "test/path", config)
-      assert match?({:error, {:location_key_missing, _}}, result)
+      message = "Missing :__location_key__ in location configuration.\n"
+
+      assert_raise RuntimeError, message, fn ->
+        Buckets.Adapters.GCS.put(object, "test/path", config)
+      end
     end
   end
 end

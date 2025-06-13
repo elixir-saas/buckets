@@ -17,22 +17,42 @@ defmodule Buckets.Adapters.GCS.AuthServer do
   @doc """
   Starts the token server for the given cloud module and location key.
   """
-  def start_link(cloud_module, location_key, opts \\ []) do
-    name = Keyword.get(opts, :name, __MODULE__)
+  def start_link(cloud_module, location_key) do
+    name = server_name_for_location(location_key)
     GenServer.start_link(__MODULE__, {cloud_module, location_key}, name: name)
   end
 
   @doc """
-  Gets a valid access token, refreshing if necessary.
+  Gets an access token for the given config (which should include __location_key__).
   """
-  def get_token(server \\ __MODULE__) do
+  def get_token_from_config(config) when is_list(config) do
+    location_key =
+      config[:__location_key__] ||
+        raise """
+        Missing :__location_key__ in location configuration.
+        """
+
+    server_name = server_name_for_location(location_key)
+
+    GenServer.whereis(server_name) ||
+      raise """
+      No AuthServer running for location #{inspect(location_key)}.
+      """
+
+    get_token(server_name)
+  end
+
+  @doc """
+  Gets a valid access token from a specific server, refreshing if necessary.
+  """
+  def get_token(server) do
     GenServer.call(server, :get_token)
   end
 
   @doc """
   Forces a token refresh.
   """
-  def refresh_token(server \\ __MODULE__) do
+  def refresh_token(server) do
     GenServer.call(server, :refresh_token)
   end
 
@@ -95,6 +115,10 @@ defmodule Buckets.Adapters.GCS.AuthServer do
   end
 
   ## Private
+
+  defp server_name_for_location(location_key) do
+    Module.concat(__MODULE__, Macro.camelize(to_string(location_key)))
+  end
 
   defp ensure_valid_token(state) do
     cond do

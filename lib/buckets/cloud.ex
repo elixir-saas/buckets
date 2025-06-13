@@ -172,6 +172,18 @@ defmodule Buckets.Cloud do
     quote do
       @behaviour Buckets.Cloud
 
+      def start_link(opts \\ []) do
+        Buckets.Cloud.Supervisor.start_link(Keyword.put(opts, :cloud_module, __MODULE__))
+      end
+
+      def child_spec(opts) do
+        %{
+          id: __MODULE__,
+          start: {__MODULE__, :start_link, [opts]},
+          type: :supervisor
+        }
+      end
+
       def insert(object_or_path, opts \\ []) do
         Buckets.Cloud.Operations.insert(__MODULE__, object_or_path, opts)
       end

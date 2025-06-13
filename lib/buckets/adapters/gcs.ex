@@ -7,19 +7,17 @@ defmodule Buckets.Adapters.GCS do
 
   ## Setup
 
-  To use this adapter, you need to start the `Buckets.Adapters.GCS.AuthSupervisor` in your application's
+  To use this adapter, you need to start your Cloud module in your application's
   supervision tree to enable automatic token caching and refresh:
 
       children = [
         # ... your other processes
-        {Buckets.Adapters.GCS.AuthSupervisor, [cloud: MyApp.Cloud]}
+        MyApp.Cloud
       ]
 
       Supervisor.start_link(children, opts)
 
-  Alternatively, you can start it manually when needed:
-
-      {:ok, _pid} = Buckets.Adapters.GCS.AuthSupervisor.start_link(cloud: MyApp.Cloud)
+  The Cloud module will automatically start the required authentication processes for GCS locations.
 
   The supervisor will automatically manage authentication tokens for each unique set of
   service account credentials, refreshing them before they expire.
@@ -64,7 +62,7 @@ defmodule Buckets.Adapters.GCS do
   alias Buckets.Object
   alias Buckets.Adapters.GCS.Auth
   alias Buckets.Adapters.GCS.Signature
-  alias Buckets.Adapters.GCS.AuthSupervisor
+  alias Buckets.Adapters.GCS.AuthServer
 
   @impl true
   def put(%Buckets.Object{} = object, remote_path, config) do
@@ -73,7 +71,7 @@ defmodule Buckets.Adapters.GCS do
     data = Object.read!(object)
     content_type = object.metadata[:content_type] || "application/octet-stream"
 
-    with {:ok, access_token} <- AuthSupervisor.get_token(config) do
+    with {:ok, access_token} <- AuthServer.get_token_from_config(config) do
       do_put(access_token, bucket, remote_path, data, content_type)
     end
   end
@@ -82,7 +80,7 @@ defmodule Buckets.Adapters.GCS do
   def get(remote_path, config) do
     bucket = Keyword.fetch!(config, :bucket)
 
-    with {:ok, access_token} <- AuthSupervisor.get_token(config) do
+    with {:ok, access_token} <- AuthServer.get_token_from_config(config) do
       do_get(access_token, bucket, remote_path)
     end
   end
@@ -131,7 +129,7 @@ defmodule Buckets.Adapters.GCS do
   def delete(remote_path, config) do
     bucket = Keyword.fetch!(config, :bucket)
 
-    with {:ok, access_token} <- AuthSupervisor.get_token(config) do
+    with {:ok, access_token} <- AuthServer.get_token_from_config(config) do
       do_delete(access_token, bucket, remote_path)
     end
   end

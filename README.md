@@ -123,6 +123,26 @@ config :my_app, MyApp.Cloud,
   ]
 ```
 
+### 3. Add to your supervision tree
+
+Add your Cloud module to your application's supervision tree (typically in `lib/my_app/application.ex`):
+
+```elixir
+def start(_type, _args) do
+  children = [
+    # ... your other processes
+    MyApp.Cloud
+  ]
+
+  opts = [strategy: :one_for_one, name: MyApp.Supervisor]
+  Supervisor.start_link(children, opts)
+end
+```
+
+The Cloud module automatically starts any required authentication processes for your configured adapters (like GCS authentication servers).
+
+## Usage
+
 Now that everything is configured, we can start inserting objects. The simplest possible
 way to do this is to upload a file from a path:
 
