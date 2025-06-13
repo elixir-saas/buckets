@@ -19,14 +19,22 @@ config :buckets, TestCloud,
       adapter: Buckets.Adapters.GCS,
       bucket: "ex-buckets-test",
       path: "test/objects",
-      service_account_path: "secret/elixir-saas-82a32641f1b6.json"
+      service_account_path: "secret/gcs/elixir-saas-82a32641f1b6.json"
     ],
     amazon: [
       adapter: Buckets.Adapters.S3,
       region: "us-east-2",
       bucket: "ex-buckets-test",
       path: "test/objects",
-      access_key_id: File.read!("secret/AWS_ACCESS_KEY_ID"),
-      secret_access_key: File.read!("secret/AWS_SECRET_ACCESS_KEY")
+      access_key_id: File.read!("secret/s3/AWS_ACCESS_KEY_ID"),
+      secret_access_key: File.read!("secret/s3/AWS_SECRET_ACCESS_KEY")
+    ],
+    fly_tigris: [
+      adapter: Buckets.Adapters.S3,
+      provider: :tigris,
+      bucket: "aged-feather-1704",
+      path: "test/objects",
+      access_key_id: File.read!("secret/tigris/AWS_ACCESS_KEY_ID"),
+      secret_access_key: File.read!("secret/tigris/AWS_SECRET_ACCESS_KEY")
     ]
   ]

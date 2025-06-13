@@ -6,7 +6,7 @@ defmodule Buckets.Adapters.S3Test do
   import Buckets.Setup
   import Buckets.UploadFixtures
 
-  @s3_opts Application.compile_env!(:buckets, TestCloud)[:locations][:amazon]
+  @s3_opts TestCloud.config_for(:amazon)
 
   setup :setup_scope
 

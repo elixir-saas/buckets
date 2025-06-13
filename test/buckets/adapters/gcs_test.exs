@@ -6,8 +6,7 @@ defmodule Buckets.Adapters.GCSTest do
   import Buckets.Setup
   import Buckets.UploadFixtures
 
-  @gcs_opts Application.compile_env!(:buckets, TestCloud)[:locations][:google]
-            |> Keyword.put(:__location_key__, :google)
+  @gcs_opts TestCloud.config_for(:google)
 
   setup :setup_scope
 

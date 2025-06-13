@@ -16,7 +16,7 @@ Supports:
 - [x] Google Cloud Storage ([`Buckets.Adapters.GCS`](./lib/buckets/adapters/gcs.ex))
 - [x] Amazon S3
 - [ ] DigitalOcean
-- [ ] Fly.io Tigris
+- [x] Fly.io Tigris
 
 Features:
 

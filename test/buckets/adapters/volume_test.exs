@@ -6,7 +6,7 @@ defmodule Buckets.Adapters.VolumeTest do
   import Buckets.Setup
   import Buckets.UploadFixtures
 
-  @volume_opts Application.compile_env!(:buckets, TestCloud)[:locations][:local]
+  @volume_opts TestCloud.config_for(:local)
 
   setup :setup_scope
 
