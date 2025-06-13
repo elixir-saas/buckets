@@ -14,10 +14,10 @@ Supports:
 
 - [x] File System ([`Buckets.Adapters.Volume`](./lib/buckets/adapters/volume.ex))
 - [x] Google Cloud Storage ([`Buckets.Adapters.GCS`](./lib/buckets/adapters/gcs.ex))
-- [x] Amazon S3 ([`Buckets.Adapters.S3`])(./lib/buckets/adapters/s3.ex)
-- [x] Cloudflare R2 ([`Buckets.Adapters.S3`])(./lib/buckets/adapters/s3.ex)
-- [x] DigitalOcean Spaces ([`Buckets.Adapters.S3`])(./lib/buckets/adapters/s3.ex)
-- [x] Fly.io Tigris ([`Buckets.Adapters.S3`])(./lib/buckets/adapters/s3.ex)
+- [x] Amazon S3 ([`Buckets.Adapters.S3`](./lib/buckets/adapters/s3.ex))
+- [x] Cloudflare R2 ([`Buckets.Adapters.S3` with `provider: :cloudflare_r2`](./lib/buckets/adapters/s3.ex))
+- [x] DigitalOcean Spaces ([`Buckets.Adapters.S3` with `provider: :digitalocean`](./lib/buckets/adapters/s3.ex))
+- [x] Tigris ([`Buckets.Adapters.S3` with `provider: :tigris`](./lib/buckets/adapters/s3.ex))
 
 Features:
 
@@ -26,10 +26,7 @@ Features:
 - [x] Signed URLs
 - [x] Easy Plug uploads
 - [x] Easy LiveView direct-to-cloud uploads
-- [x] Dev env router
-- [ ] Streaming uploads
-- [ ] Streaming downloads
-- [ ] Automatic retry logic
+- [x] Dev router for local uploads & downloads
 - [x] Telemetry
 
 ## Installation
@@ -209,6 +206,13 @@ you must explicitly include them in the test command:
 # Run all live tests
 mix test --include live
 
-# Run just live tests for google cloud storage
-mix test --include live_gcs
+# Run live tests for specific adapters
+mix test --include live_gcs           # Google Cloud Storage
+mix test --include live_s3            # Amazon S3
+mix test --include live_cloudflare_r2 # Cloudflare R2
+mix test --include live_digitalocean  # DigitalOcean Spaces
+mix test --include live_tigris        # Tigris
+
+# Run live tests for multiple adapters
+mix test --include live_gcs --include live_s3
 ```
