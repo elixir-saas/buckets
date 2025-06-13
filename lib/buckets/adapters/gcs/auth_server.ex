@@ -10,6 +10,7 @@ defmodule Buckets.Adapters.GCS.AuthServer do
   require Logger
 
   alias Buckets.Adapters.GCS.Auth
+  alias Buckets.Telemetry
 
   # Refresh 5 minutes before expiry
   @refresh_margin_seconds 300
@@ -102,16 +103,27 @@ defmodule Buckets.Adapters.GCS.AuthServer do
 
   @impl true
   def handle_info(:refresh_token, state) do
-    case fetch_new_token(state) do
-      {:ok, _token, new_state} ->
-        {:noreply, new_state}
+    metadata = %{
+      location_key: state.location_key,
+      client_email: state.credentials["client_email"]
+    }
 
-      {:error, reason} ->
-        Logger.error("Failed to refresh GCS token: #{inspect(reason)}")
-        # Schedule retry in 30 seconds
-        timer = Process.send_after(self(), :refresh_token, 30_000)
-        {:noreply, %{state | refresh_timer: timer}}
-    end
+    stop_telemetry = Telemetry.start_event([:buckets, :auth, :token, :refresh], metadata)
+
+    result =
+      case fetch_new_token(state) do
+        {:ok, _token, new_state} ->
+          {:noreply, new_state}
+
+        {:error, reason} ->
+          Logger.error("Failed to refresh GCS token: #{inspect(reason)}")
+          # Schedule retry in 30 seconds
+          timer = Process.send_after(self(), :refresh_token, 30_000)
+          {:noreply, %{state | refresh_timer: timer}}
+      end
+
+    stop_telemetry.(%{})
+    result
   end
 
   ## Private
@@ -137,33 +149,40 @@ defmodule Buckets.Adapters.GCS.AuthServer do
   end
 
   defp fetch_new_token(state) do
-    case Auth.get_access_token(state.credentials) do
-      {:ok, token} ->
-        # Tokens typically expire in 3600 seconds (1 hour)
-        expires_at = System.system_time(:second) + 3600
+    metadata = %{
+      location_key: state.location_key,
+      client_email: state.credentials["client_email"]
+    }
 
-        # Cancel existing timer
-        if state.refresh_timer do
-          Process.cancel_timer(state.refresh_timer)
-        end
+    Telemetry.span([:buckets, :auth, :token, :fetch], metadata, fn ->
+      case Auth.get_access_token(state.credentials) do
+        {:ok, token} ->
+          # Tokens typically expire in 3600 seconds (1 hour)
+          expires_at = System.system_time(:second) + 3600
 
-        # Schedule refresh before expiry
-        refresh_in = 3600 - @refresh_margin_seconds
-        timer = Process.send_after(self(), :refresh_token, refresh_in * 1000)
+          # Cancel existing timer
+          if state.refresh_timer do
+            Process.cancel_timer(state.refresh_timer)
+          end
 
-        new_state = %{
-          state
-          | token: token,
-            expires_at: expires_at,
-            refresh_timer: timer
-        }
+          # Schedule refresh before expiry
+          refresh_in = 3600 - @refresh_margin_seconds
+          timer = Process.send_after(self(), :refresh_token, refresh_in * 1000)
 
-        Logger.debug("GCS token refreshed, expires at #{expires_at}")
-        {:ok, token, new_state}
+          new_state = %{
+            state
+            | token: token,
+              expires_at: expires_at,
+              refresh_timer: timer
+          }
 
-      {:error, reason} ->
-        {:error, reason}
-    end
+          Logger.debug("GCS token refreshed, expires at #{expires_at}")
+          {:ok, token, new_state}
+
+        {:error, reason} ->
+          {:error, reason}
+      end
+    end)
   end
 
   defp token_expired?(state) do

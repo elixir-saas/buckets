@@ -1,19 +1,28 @@
 defmodule Buckets.Cloud.Operations do
   alias Buckets.Object
   alias Buckets.Location
+  alias Buckets.Telemetry
 
   def insert(module, path, opts) when is_binary(path) do
     insert(module, Object.from_file(path), opts)
   end
 
   def insert(module, %Object{location: %Location.NotConfigured{}} = object, opts) do
-    {location, opts} = Keyword.pop(opts, :config, :default)
+    metadata = %{
+      cloud_module: module,
+      filename: object.filename,
+      content_type: object.metadata[:content_type]
+    }
 
-    location_config = module.config_for(location)
-    location_path = default_object_location(module, object, location_config)
-    location = Location.new(location_path, location_config)
+    Telemetry.span([:buckets, :cloud, :insert], metadata, fn ->
+      {location, opts} = Keyword.pop(opts, :config, :default)
 
-    insert(module, %{object | location: location}, opts)
+      location_config = module.config_for(location)
+      location_path = default_object_location(module, object, location_config)
+      location = Location.new(location_path, location_config)
+
+      insert(module, %{object | location: location}, opts)
+    end)
   end
 
   def insert(_module, %Object{} = object, _opts) do
@@ -27,13 +36,21 @@ defmodule Buckets.Cloud.Operations do
   end
 
   def delete(%Object{} = object) do
-    case Buckets.delete(object.location.path, object.location.config) do
-      {:ok, _meta} ->
-        {:ok, %{object | stored?: false}}
+    metadata = %{
+      filename: object.filename,
+      path: object.location.path,
+      adapter: object.location.config[:adapter]
+    }
 
-      {:error, _reason} = error ->
-        error
-    end
+    Telemetry.span([:buckets, :cloud, :delete], metadata, fn ->
+      case Buckets.delete(object.location.path, object.location.config) do
+        {:ok, _meta} ->
+          {:ok, %{object | stored?: false}}
+
+        {:error, _reason} = error ->
+          error
+      end
+    end)
   end
 
   def read(%Object{data: nil, location: %Location.NotConfigured{}}) do
@@ -51,7 +68,15 @@ defmodule Buckets.Cloud.Operations do
   end
 
   def read(%Object{} = object) do
-    Buckets.get(object.location.path, object.location.config)
+    metadata = %{
+      filename: object.filename,
+      path: object.location.path,
+      adapter: object.location.config[:adapter]
+    }
+
+    Telemetry.span([:buckets, :cloud, :read], metadata, fn ->
+      Buckets.get(object.location.path, object.location.config)
+    end)
   end
 
   def load(_module, %Object{location: %Location.NotConfigured{}}, _opts) do
@@ -61,30 +86,40 @@ defmodule Buckets.Cloud.Operations do
   end
 
   def load(module, %Object{data: nil} = object, opts) do
-    case Buckets.get(object.location.path, object.location.config) do
-      {:ok, data} ->
-        scoped_path = fn segments ->
-          Path.join(segments ++ [object.uuid, object.filename])
-        end
+    metadata = %{
+      cloud_module: module,
+      filename: object.filename,
+      path: object.location.path,
+      adapter: object.location.config[:adapter],
+      to: opts[:to]
+    }
 
-        object_data =
-          case opts[:to] do
-            nil -> {:data, data}
-            :tmp -> {:file, scoped_path.([module.tmp_dir()])}
-            {:tmp, path} -> {:file, scoped_path.([module.tmp_dir(), path])}
-            path when is_binary(path) -> {:file, scoped_path.([path])}
+    Telemetry.span([:buckets, :cloud, :load], metadata, fn ->
+      case Buckets.get(object.location.path, object.location.config) do
+        {:ok, data} ->
+          scoped_path = fn segments ->
+            Path.join(segments ++ [object.uuid, object.filename])
           end
 
-        with {:file, path} <- object_data do
-          File.mkdir_p!(Path.dirname(path))
-          File.write!(path, data)
-        end
+          object_data =
+            case opts[:to] do
+              nil -> {:data, data}
+              :tmp -> {:file, scoped_path.([module.tmp_dir()])}
+              {:tmp, path} -> {:file, scoped_path.([module.tmp_dir(), path])}
+              path when is_binary(path) -> {:file, scoped_path.([path])}
+            end
 
-        {:ok, %{object | data: object_data}}
+          with {:file, path} <- object_data do
+            File.mkdir_p!(Path.dirname(path))
+            File.write!(path, data)
+          end
 
-      {:error, _reason} = error ->
-        error
-    end
+          {:ok, %{object | data: object_data}}
+
+        {:error, _reason} = error ->
+          error
+      end
+    end)
   end
 
   def load(module, %Object{} = object, opts) do
@@ -114,7 +149,15 @@ defmodule Buckets.Cloud.Operations do
   end
 
   def url(%Object{} = object, opts) do
-    Buckets.url(object.location.path, Keyword.merge(opts, object.location.config))
+    metadata = %{
+      filename: object.filename,
+      path: object.location.path,
+      adapter: object.location.config[:adapter]
+    }
+
+    Telemetry.span([:buckets, :cloud, :url], metadata, fn ->
+      Buckets.url(object.location.path, Keyword.merge(opts, object.location.config))
+    end)
   end
 
   def live_upload(module, entry, opts) do

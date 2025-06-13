@@ -29,7 +29,7 @@ Features:
 - [ ] Streaming uploads
 - [ ] Streaming downloads
 - [ ] Automatic retry logic
-- [ ] Telemetry
+- [x] Telemetry
 
 ## Installation
 
