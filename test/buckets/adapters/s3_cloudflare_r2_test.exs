@@ -1,4 +1,4 @@
-defmodule Buckets.Adapters.CloudflareTest do
+defmodule Buckets.Adapters.S3CloudflareR2Test do
   use ExUnit.Case
 
   alias Buckets.Adapters.S3
@@ -11,9 +11,9 @@ defmodule Buckets.Adapters.CloudflareTest do
   setup :setup_scope
 
   @tag :live
-  @tag :live_r2
+  @tag :live_cloudflare_r2
 
-  test "r2 put", context do
+  test "cloudflare r2 put", context do
     %{data: {:file, path}} = object = pdf_object()
 
     remote_path = "test/objects/#{context.scope}/simple.pdf"
@@ -26,9 +26,9 @@ defmodule Buckets.Adapters.CloudflareTest do
   end
 
   @tag :live
-  @tag :live_r2
+  @tag :live_cloudflare_r2
 
-  test "r2 get", context do
+  test "cloudflare r2 get", context do
     setup_bucket(context, @r2_opts)
 
     remote_path = "test/objects/#{context.scope}/simple.pdf"
@@ -38,9 +38,9 @@ defmodule Buckets.Adapters.CloudflareTest do
   end
 
   @tag :live
-  @tag :live_r2
+  @tag :live_cloudflare_r2
 
-  test "r2 url", context do
+  test "cloudflare r2 url", context do
     setup_bucket(context, @r2_opts)
 
     remote_path = "test/objects/#{context.scope}/simple.pdf"
@@ -53,9 +53,9 @@ defmodule Buckets.Adapters.CloudflareTest do
   end
 
   @tag :live
-  @tag :live_r2
+  @tag :live_cloudflare_r2
 
-  test "r2 delete", context do
+  test "cloudflare r2 delete", context do
     setup_bucket(context, @r2_opts)
 
     remote_path = "test/objects/#{context.scope}/simple.pdf"

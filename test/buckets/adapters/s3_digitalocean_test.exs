@@ -1,4 +1,4 @@
-defmodule Buckets.Adapters.DigitalOceanTest do
+defmodule Buckets.Adapters.S3DigitalOceanTest do
   use ExUnit.Case
 
   alias Buckets.Adapters.S3

@@ -1,4 +1,4 @@
-defmodule Buckets.Adapters.TigrisTest do
+defmodule Buckets.Adapters.S3TigrisTest do
   use ExUnit.Case
 
   alias Buckets.Adapters.S3
