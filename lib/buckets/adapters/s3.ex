@@ -12,6 +12,7 @@ defmodule Buckets.Adapters.S3 do
         :adapter,
         :bucket,
         :path,
+        :endpoint_url,
         :access_key_id,
         :secret_access_key,
         provider: :aws,
@@ -22,6 +23,7 @@ defmodule Buckets.Adapters.S3 do
       provider_defaults =
         case Keyword.fetch!(config, :provider) do
           :aws -> []
+          :digitalocean -> [endpoint_url: "https://nyc3.digitaloceanspaces.com", region: "nyc3"]
           :tigris -> [endpoint_url: "https://fly.storage.tigris.dev"]
           provider -> raise "Unknown S3 provider: #{inspect(provider)}"
         end

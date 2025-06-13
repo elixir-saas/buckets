@@ -29,6 +29,14 @@ config :buckets, TestCloud,
       access_key_id: File.read!("secret/s3/AWS_ACCESS_KEY_ID"),
       secret_access_key: File.read!("secret/s3/AWS_SECRET_ACCESS_KEY")
     ],
+    digitalocean_spaces: [
+      adapter: Buckets.Adapters.S3,
+      provider: :digitalocean,
+      bucket: "ex-buckets-test",
+      path: "test/objects",
+      access_key_id: File.read!("secret/digitalocean/AWS_ACCESS_KEY_ID"),
+      secret_access_key: File.read!("secret/digitalocean/AWS_SECRET_ACCESS_KEY")
+    ],
     fly_tigris: [
       adapter: Buckets.Adapters.S3,
       provider: :tigris,
