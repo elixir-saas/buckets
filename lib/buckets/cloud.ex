@@ -254,11 +254,15 @@ defmodule Buckets.Cloud do
 
       def config_for(:default), do: config_for(unquote(default_location))
 
-      def config_for(location) do
+      def config_for(location) when is_atom(location) do
         config =
           Keyword.get(config(:locations), location) ||
             raise "No location config found for key #{inspect(location)}"
 
+        config_for({location, config})
+      end
+
+      def config_for({location, config}) when is_atom(location) and is_list(config) do
         adapter =
           config[:adapter] ||
             raise "Location config must always include an :adapter value."
