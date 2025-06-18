@@ -12,6 +12,7 @@ defmodule Buckets.Adapters.S3 do
         :adapter,
         :bucket,
         :path,
+        :uploader,
         :endpoint_url,
         :access_key_id,
         :secret_access_key,

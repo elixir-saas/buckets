@@ -6,10 +6,8 @@ defmodule Buckets.Router.VolumeController do
 
   def get(conn, %{"path" => path}) do
     cloud_module = conn.private.cloud_module
-    config = cloud_module.config_for(conn.private.location)
 
-    object =
-      Buckets.Object.new(nil, List.last(path), location: {Path.join(path), config})
+    object = Buckets.Object.new(nil, List.last(path), location: {Path.join(path), cloud_module})
 
     binary = cloud_module.read!(object)
 
@@ -44,17 +42,16 @@ defmodule Buckets.Router.VolumeController do
   ## Plugs
 
   defp validate_bucket(conn, _opts) do
-    location = conn.private.location
-    config = conn.private.cloud_module.config_for(location)
+    cloud_module = conn.private.cloud_module
 
-    if config[:bucket] == conn.path_params["bucket"] do
+    if cloud_module.config()[:bucket] == conn.path_params["bucket"] do
       conn
     else
       raise """
-      The `"bucket"` parameter must match the `:bucket` configured for: #{inspect(location)}.
+      The `"bucket"` parameter must match the `:bucket` configured for: #{inspect(cloud_module)}.
 
           Check that the configuration you are using to generate the volume upload URL matches
-          the location configured in your Router module.
+          the cloud module configured in your Router module.
       """
     end
   end
@@ -62,8 +59,7 @@ defmodule Buckets.Router.VolumeController do
   defp validate_signature(conn, _opts) do
     import Buckets.Adapters.Volume, only: [verify_signed_path: 3]
 
-    location = conn.private.location
-    config = conn.private.cloud_module.config_for(location)
+    config = conn.private.cloud_module.config()
 
     %{path_info: path, query_params: params} = conn
 

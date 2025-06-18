@@ -40,5 +40,42 @@ defmodule Buckets.LocationTest do
       assert location.path == "/test/path"
       assert location.config == config
     end
+
+    test "creates location with Cloud module" do
+      location = Location.new("/test/path", TestCloud)
+
+      assert location.path == "/test/path"
+      assert location.config == TestCloud
+    end
+  end
+
+  describe "get_config/1" do
+    test "returns keyword list config as-is" do
+      config = [adapter: Buckets.Adapters.Volume, bucket: "/tmp"]
+      location = Location.new("/test/path", config)
+
+      assert Location.get_config(location) == config
+    end
+
+    test "calls config/0 on Cloud module" do
+      # Ensure TestCloud module is loaded
+      Code.ensure_loaded!(TestCloud)
+
+      location = Location.new("/test/path", TestCloud)
+
+      # TestCloud.config() returns the actual configuration
+      config = Location.get_config(location)
+      assert is_list(config)
+      assert config[:adapter] == Buckets.Adapters.Volume
+    end
+
+    test "raises for invalid module without config/0" do
+      # Create a location with a module that doesn't have config/0
+      location = Location.new("/test/path", String)
+
+      assert_raise ArgumentError, ~r/Expected String to be a Cloud module/, fn ->
+        Location.get_config(location)
+      end
+    end
   end
 end

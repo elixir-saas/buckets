@@ -37,7 +37,7 @@ defmodule Buckets.Cloud.Operations do
   end
 
   def delete(%Object{} = object) do
-    config = object.location.config
+    config = Location.get_config(object.location)
 
     metadata = %{
       filename: object.filename,
@@ -71,7 +71,7 @@ defmodule Buckets.Cloud.Operations do
   end
 
   def read(%Object{} = object) do
-    config = object.location.config
+    config = Location.get_config(object.location)
 
     metadata = %{
       filename: object.filename,
@@ -91,7 +91,7 @@ defmodule Buckets.Cloud.Operations do
   end
 
   def load(module, %Object{data: nil} = object, opts) do
-    config = object.location.config
+    config = Location.get_config(object.location)
 
     metadata = %{
       adapter: config[:adapter],
@@ -158,7 +158,7 @@ defmodule Buckets.Cloud.Operations do
   end
 
   def url(%Object{} = object, opts) do
-    config = object.location.config
+    config = Location.get_config(object.location)
 
     metadata = %{
       filename: object.filename,

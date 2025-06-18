@@ -80,6 +80,7 @@ defmodule Buckets.Adapters.GCS do
         :adapter,
         :bucket,
         :path,
+        :uploader,
         :service_account_path,
         :service_account_credentials
       ])

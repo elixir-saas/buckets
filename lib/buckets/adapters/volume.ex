@@ -9,6 +9,7 @@ defmodule Buckets.Adapters.Volume do
         :bucket,
         :path,
         :endpoint,
+        :uploader,
         :base_url
       ])
 
