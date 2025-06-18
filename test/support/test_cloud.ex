@@ -22,6 +22,6 @@ defmodule TestCloud.Tigris do
   use Buckets.Cloud, otp_app: :buckets
 end
 
-defmodule TestCloud.CloudflareR2 do
+defmodule TestCloud.Cloudflare do
   use Buckets.Cloud, otp_app: :buckets
 end

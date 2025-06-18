@@ -1,4 +1,4 @@
-defmodule Buckets.Adapters.S3CloudflareR2Test do
+defmodule Buckets.Adapters.S3CloudflareTest do
   use ExUnit.Case
 
   alias Buckets.Adapters.S3
@@ -6,12 +6,12 @@ defmodule Buckets.Adapters.S3CloudflareR2Test do
   import Buckets.Setup
   import Buckets.UploadFixtures
 
-  @r2_opts TestCloud.CloudflareR2.config()
+  @r2_opts TestCloud.Cloudflare.config()
 
   setup :setup_scope
 
   @tag :live
-  @tag :live_cloudflare_r2
+  @tag :live_cloudflare
 
   test "cloudflare r2 put", context do
     %{data: {:file, path}} = object = pdf_object()
@@ -26,7 +26,7 @@ defmodule Buckets.Adapters.S3CloudflareR2Test do
   end
 
   @tag :live
-  @tag :live_cloudflare_r2
+  @tag :live_cloudflare
 
   test "cloudflare r2 get", context do
     setup_bucket(context, @r2_opts)
@@ -38,7 +38,7 @@ defmodule Buckets.Adapters.S3CloudflareR2Test do
   end
 
   @tag :live
-  @tag :live_cloudflare_r2
+  @tag :live_cloudflare
 
   test "cloudflare r2 url", context do
     setup_bucket(context, @r2_opts)
@@ -53,7 +53,7 @@ defmodule Buckets.Adapters.S3CloudflareR2Test do
   end
 
   @tag :live
-  @tag :live_cloudflare_r2
+  @tag :live_cloudflare
 
   test "cloudflare r2 delete", context do
     setup_bucket(context, @r2_opts)
@@ -68,7 +68,7 @@ defmodule Buckets.Adapters.S3CloudflareR2Test do
     test "accepts valid cloudflare config with endpoint_url" do
       config = [
         adapter: S3,
-        provider: :cloudflare_r2,
+        provider: :cloudflare,
         endpoint_url: "https://account-id.r2.cloudflarestorage.com",
         bucket: "test-bucket",
         access_key_id: "test-key",
@@ -87,7 +87,7 @@ defmodule Buckets.Adapters.S3CloudflareR2Test do
     test "accepts cloudflare config with custom region" do
       config = [
         adapter: S3,
-        provider: :cloudflare_r2,
+        provider: :cloudflare,
         endpoint_url: "https://account-id.r2.cloudflarestorage.com",
         bucket: "test-bucket",
         access_key_id: "test-key",
@@ -104,7 +104,7 @@ defmodule Buckets.Adapters.S3CloudflareR2Test do
     test "rejects cloudflare config without endpoint_url" do
       config = [
         adapter: S3,
-        provider: :cloudflare_r2,
+        provider: :cloudflare,
         bucket: "test-bucket",
         access_key_id: "test-key",
         secret_access_key: "test-secret"

@@ -15,7 +15,7 @@ Supports:
 - [x] File System ([`Buckets.Adapters.Volume`](./lib/buckets/adapters/volume.ex))
 - [x] Google Cloud Storage ([`Buckets.Adapters.GCS`](./lib/buckets/adapters/gcs.ex))
 - [x] Amazon S3 ([`Buckets.Adapters.S3`](./lib/buckets/adapters/s3.ex))
-- [x] Cloudflare R2 ([`Buckets.Adapters.S3` with `provider: :cloudflare_r2`](./lib/buckets/adapters/s3.ex))
+- [x] Cloudflare R2 ([`Buckets.Adapters.S3` with `provider: :cloudflare`](./lib/buckets/adapters/s3.ex))
 - [x] DigitalOcean Spaces ([`Buckets.Adapters.S3` with `provider: :digitalocean`](./lib/buckets/adapters/s3.ex))
 - [x] Tigris ([`Buckets.Adapters.S3` with `provider: :tigris`](./lib/buckets/adapters/s3.ex))
 
