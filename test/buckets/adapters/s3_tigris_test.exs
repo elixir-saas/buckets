@@ -6,7 +6,7 @@ defmodule Buckets.Adapters.S3TigrisTest do
   import Buckets.Setup
   import Buckets.UploadFixtures
 
-  @tigris_opts TestCloud.config_for(:fly_tigris)
+  @tigris_opts TestCloud.Tigris.config()
 
   setup :setup_scope
 

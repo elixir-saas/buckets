@@ -3,50 +3,107 @@ defmodule Buckets.Cloud do
   Defines a cloud.
 
   A cloud manages the movement of files and data between your application and
-  remote buckets for persistent storage.
+  a remote bucket for persistent storage.
 
-  When used, it expects `:otp_app` and `:default_location` as options:
+  When used, it expects `:otp_app` as an option:
 
       defmodule MyApp.Cloud do
         use Buckets.Cloud,
-          otp_app: :my_app,
-          default_location: :local
+          otp_app: :my_app
       end
 
-  Additional configuration is fetched from the application config, using a
-  combination of `:otp_app` and the module that you defined. You may configure
-  many "locations" in your config, for setting up multi-cloud support:
+  Configuration is fetched from the application config, using a combination of
+  `:otp_app` and the module that you defined:
 
-        config :my_app, MyApp.Cloud,
-          locations: [
-            local: [
-              adapter: Buckets.Adapters.Volume,
-              # configure this adapter...
-            ],
-            gcs: [
-              adapter: Buckets.Adapters.GCS,
-              # configure this adapter...
-            ],
-            us_east_1: [
-              adapter: Buckets.Adapters.S3,
-              # configure this adapter...
-            ]
-          ]
+      config :my_app, MyApp.Cloud,
+        adapter: Buckets.Adapters.Volume,
+        bucket: "tmp/buckets_volume",
+        base_url: "http://localhost:4000"
+
+  Each Cloud module corresponds to a single storage backend, similar to how
+  Ecto.Repo modules correspond to a single database. For multi-cloud applications,
+  define multiple Cloud modules:
+
+      defmodule MyApp.VolumeCloud do
+        use Buckets.Cloud, otp_app: :my_app
+      end
+
+      defmodule MyApp.GCSCloud do
+        use Buckets.Cloud, otp_app: :my_app
+      end
+
+      defmodule MyApp.S3Cloud do
+        use Buckets.Cloud, otp_app: :my_app
+      end
 
   You may also specify config dynamically at runtime, using the `:config` opt
   where it is supported.
 
-  When building a multi-cloud application and persisting uploaded objects to a
-  database, you should take care to store some indicator of the location config that
-  was used to insert a particular object. Otherwise, you won't know how to fetch
-  data for or manage that object the next time it is accessed.
+  ## Supervision
 
-  Similarly, if you are building a dynamic-cloud application (say, so that your users
-  can specify their own clouds for your application to use), you should store the
-  configuration provided by the user. As objects are inserted to the cloud and stored
-  in your database, add a mapping between the object and the user-provided config. If
-  this config is ever deleted, objects managed by it will become inaccessible. Keep this
-  in mind as you build features to let users update or delete their config.
+  Cloud modules start a supervisor that manages any background processes required 
+  by the configured adapter. Some adapters (like GCS) need authentication servers,
+  while others (like Volume, S3) don't need any supervised processes.
+
+  **Only add Cloud modules to your supervision tree if they need background processes.**
+  If you add a Cloud module that doesn't need supervision (Volume, S3), you'll see
+  a warning message suggesting you remove it to avoid unnecessary overhead.
+
+      # Only needed for adapters that require background processes (like GCS)
+      children = [
+        MyApp.GCSCloud  # GCS needs auth servers
+        # MyApp.VolumeCloud - Not needed, would show warning
+        # MyApp.S3Cloud - Not needed, would show warning
+      ]
+
+  ## Dynamic Configuration
+
+  For multi-tenant applications where cloud configurations are determined at runtime,
+  every Cloud module supports dynamic configuration using the process dictionary,
+  similar to Ecto's dynamic repositories.
+
+  ### Usage
+
+  There are two ways to use dynamic configuration:
+
+  #### 1. Scoped Configuration (like Ecto transactions)
+
+  Use `with_config/2` for temporary configuration:
+
+      # Define the runtime configuration
+      config = [
+        adapter: Buckets.Adapters.S3,
+        bucket: "user-bucket",
+        access_key_id: "AKIA...",
+        secret_access_key: "secret...",
+        region: "us-east-1"
+      ]
+
+      # Execute operations with the dynamic config
+      {:ok, object} = MyApp.Cloud.with_config(config, fn ->
+        MyApp.Cloud.insert("file.pdf")
+        MyApp.Cloud.insert("another.pdf")  # Same config
+      end)
+
+  #### 2. Process-Local Configuration (like Ecto.Repo.put_dynamic_repo)
+
+  Use `put_dynamic_config/1` for persistent configuration in the current process:
+
+      # Set dynamic config for this process
+      :ok = MyApp.Cloud.put_dynamic_config([
+        adapter: Buckets.Adapters.GCS,
+        bucket: "tenant-specific-bucket",
+        service_account_credentials: tenant.credentials
+      ])
+
+      # All subsequent operations use the dynamic config
+      {:ok, object1} = MyApp.Cloud.insert("file1.pdf")
+      {:ok, object2} = MyApp.Cloud.insert("file2.pdf")
+
+  ### Auth Server Management
+
+  Auth servers (for GCS) are automatically started and cached per-process as needed.
+  You don't need any special configuration or supervision setup for dynamic clouds.
   """
 
   @doc """
@@ -163,12 +220,6 @@ defmodule Buckets.Cloud do
         Must specify a :otp_app option when using Buckets.Cloud.
         """
 
-    default_location =
-      opts[:default_location] ||
-        raise """
-        Must specify a :default_location option when using Buckets.Cloud.
-        """
-
     quote do
       @behaviour Buckets.Cloud
 
@@ -250,34 +301,17 @@ defmodule Buckets.Cloud do
 
       ## Config
 
-      def locations(), do: config(:locations)
-
-      def config_for(:default), do: config_for(unquote(default_location))
-
-      def config_for(location) when is_atom(location) do
-        config =
-          Keyword.get(config(:locations), location) ||
-            raise "No location config found for key #{inspect(location)}"
-
-        config_for({location, config})
+      def config() do
+        Buckets.Cloud.Dynamic.config(__MODULE__, unquote(otp_app))
       end
 
-      def config_for({location, config}) when is_atom(location) and is_list(config) do
-        adapter =
-          config[:adapter] ||
-            raise "Location config must always include an :adapter value."
-
-        case adapter.validate_config(config) do
-          {:ok, config} ->
-            Keyword.put(config, :__location_key__, location)
-
-          {:error, invalid_keys} ->
-            raise "Invalid or missing keys in location config: #{inspect(invalid_keys)}"
-        end
+      def put_dynamic_config(config) when is_list(config) do
+        Buckets.Cloud.Dynamic.put_dynamic_config(__MODULE__, config)
       end
 
-      defp config(key), do: Keyword.fetch!(config(), key)
-      defp config(), do: Application.fetch_env!(unquote(otp_app), __MODULE__)
+      def with_config(config, fun) when is_list(config) and is_function(fun, 0) do
+        Buckets.Cloud.Dynamic.with_config(__MODULE__, config, fun)
+      end
     end
   end
 end

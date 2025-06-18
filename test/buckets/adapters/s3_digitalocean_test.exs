@@ -6,7 +6,7 @@ defmodule Buckets.Adapters.S3DigitalOceanTest do
   import Buckets.Setup
   import Buckets.UploadFixtures
 
-  @digitalocean_opts TestCloud.config_for(:digitalocean_spaces)
+  @digitalocean_opts TestCloud.DigitalOcean.config()
 
   setup :setup_scope
 

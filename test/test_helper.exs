@@ -1,4 +1,4 @@
 ExUnit.start(exclude: [:live])
 
-# Start TestCloud supervisor for tests
-{:ok, _pid} = TestCloud.start_link()
+# Only start auth server for cloud using GCS adapter
+{:ok, _pid} = TestCloud.GCS.start_link()

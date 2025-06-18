@@ -6,7 +6,7 @@ defmodule Buckets.Adapters.S3CloudflareR2Test do
   import Buckets.Setup
   import Buckets.UploadFixtures
 
-  @r2_opts TestCloud.config_for(:cloudflare_r2)
+  @r2_opts TestCloud.CloudflareR2.config()
 
   setup :setup_scope
 

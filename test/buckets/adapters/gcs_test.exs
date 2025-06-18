@@ -6,7 +6,7 @@ defmodule Buckets.Adapters.GCSTest do
   import Buckets.Setup
   import Buckets.UploadFixtures
 
-  @gcs_opts TestCloud.config_for(:google)
+  @gcs_opts TestCloud.GCS.config()
 
   setup :setup_scope
 

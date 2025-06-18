@@ -65,6 +65,15 @@ defmodule Buckets.Adapters.GCS do
   alias Buckets.Adapters.GCS.AuthServer
 
   @impl true
+  def child_spec(_config, cloud_module) do
+    %{
+      id: {AuthServer, cloud_module},
+      start: {AuthServer, :start_link, [[cloud: cloud_module]]},
+      restart: :permanent
+    }
+  end
+
+  @impl true
   def validate_config(config) do
     validate_result =
       Keyword.validate(config, [
@@ -91,7 +100,7 @@ defmodule Buckets.Adapters.GCS do
     data = Object.read!(object)
     content_type = object.metadata[:content_type] || "application/octet-stream"
 
-    with {:ok, access_token} <- AuthServer.get_token_from_config(config) do
+    with {:ok, access_token} <- get_access_token(config) do
       do_put(access_token, bucket, remote_path, data, content_type)
     end
   end
@@ -100,7 +109,7 @@ defmodule Buckets.Adapters.GCS do
   def get(remote_path, config) do
     bucket = Keyword.fetch!(config, :bucket)
 
-    with {:ok, access_token} <- AuthServer.get_token_from_config(config) do
+    with {:ok, access_token} <- get_access_token(config) do
       do_get(access_token, bucket, remote_path)
     end
   end
@@ -149,12 +158,30 @@ defmodule Buckets.Adapters.GCS do
   def delete(remote_path, config) do
     bucket = Keyword.fetch!(config, :bucket)
 
-    with {:ok, access_token} <- AuthServer.get_token_from_config(config) do
+    with {:ok, access_token} <- get_access_token(config) do
       do_delete(access_token, bucket, remote_path)
     end
   end
 
   ## Private
+
+  defp get_access_token(config) do
+    case config[:__auth_server_pid__] do
+      pid when is_pid(pid) ->
+        # Use existing auth server (from dynamic config)
+        AuthServer.get_token(pid)
+
+      nil ->
+        # No auth server - call Auth.get_credentials directly
+        case Auth.get_credentials(config) do
+          {:ok, credentials} ->
+            Auth.get_access_token(credentials)
+
+          {:error, reason} ->
+            {:error, reason}
+        end
+    end
+  end
 
   defp do_put(access_token, bucket, object_name, data, content_type) do
     url = "https://storage.googleapis.com/upload/storage/v1/b/#{bucket}/o"

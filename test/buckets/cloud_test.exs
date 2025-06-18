@@ -7,7 +7,7 @@ defmodule Buckets.CloudTest do
 
     test "inserts path to google" do
       assert {:ok, %{stored?: true} = object} =
-               TestCloud.insert("priv/simple.pdf", config: :google)
+               TestCloud.GCS.insert("priv/simple.pdf")
 
       assert object.uuid != nil
       assert object.filename == "simple.pdf"
@@ -17,10 +17,10 @@ defmodule Buckets.CloudTest do
 
       object = %{object | data: nil}
 
-      assert {:ok, object} = TestCloud.load(object, to: {:tmp, "_scope"})
+      assert {:ok, object} = TestCloud.GCS.load(object, to: {:tmp, "_scope"})
       assert {:file, _path} = object.data
 
-      assert {:ok, object} = TestCloud.load(object, force: true)
+      assert {:ok, object} = TestCloud.GCS.load(object, force: true)
       assert {:data, _data} = object.data
     end
 
@@ -29,7 +29,7 @@ defmodule Buckets.CloudTest do
 
     test "inserts path to amazon" do
       assert {:ok, %{stored?: true} = object} =
-               TestCloud.insert("priv/simple.pdf", config: :amazon)
+               TestCloud.S3.insert("priv/simple.pdf")
 
       assert object.uuid != nil
       assert object.filename == "simple.pdf"
@@ -39,10 +39,10 @@ defmodule Buckets.CloudTest do
 
       object = %{object | data: nil}
 
-      assert {:ok, object} = TestCloud.load(object, to: {:tmp, "_scope"})
+      assert {:ok, object} = TestCloud.S3.load(object, to: {:tmp, "_scope"})
       assert {:file, _path} = object.data
 
-      assert {:ok, object} = TestCloud.load(object, force: true)
+      assert {:ok, object} = TestCloud.S3.load(object, force: true)
       assert {:data, _data} = object.data
     end
 
@@ -56,9 +56,17 @@ defmodule Buckets.CloudTest do
       assert object.location.path =~ "test/objects/"
     end
 
-    test "inserts path to location" do
+    test "inserts path with custom config" do
+      custom_config = [
+        adapter: Buckets.Adapters.Volume,
+        bucket: System.tmp_dir!(),
+        path: "test_other/objects"
+      ]
+
       assert {:ok, %{stored?: true} = object} =
-               TestCloud.insert("priv/simple.pdf", config: :other_local)
+               TestCloud.with_config(custom_config, fn ->
+                 TestCloud.insert("priv/simple.pdf")
+               end)
 
       assert object.uuid != nil
       assert object.filename == "simple.pdf"

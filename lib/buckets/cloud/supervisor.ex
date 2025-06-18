@@ -1,15 +1,16 @@
 defmodule Buckets.Cloud.Supervisor do
   @moduledoc """
-  Supervisor that manages authentication servers for cloud adapters.
+  Supervisor that manages any processes required by cloud adapters.
 
   This supervisor is used internally by Cloud modules to automatically
-  start any required authentication processes for configured adapters.
+  start any required processes for configured adapters by calling the
+  adapter's `child_spec/1` callback. Adapters that don't need supervised
+  processes (like Volume, S3) return `nil`, while adapters that need
+  background processes (like GCS auth servers) return proper child specs.
   """
 
   use Supervisor
   require Logger
-
-  alias Buckets.Adapters.GCS
 
   @doc """
   Starts the supervisor with a Cloud module.
@@ -25,25 +26,36 @@ defmodule Buckets.Cloud.Supervisor do
 
   @impl true
   def init(cloud_module) do
+    config = cloud_module.config()
+    adapter = config[:adapter]
+
     children =
-      cloud_module.locations()
-      |> Enum.map(fn {location_key, location} ->
-        child_spec_for_location(location[:adapter], cloud_module, location_key)
-      end)
-      |> Enum.reject(&is_nil/1)
+      if function_exported?(adapter, :child_spec, 2) do
+        case adapter.child_spec(config, cloud_module) do
+          child_spec when is_map(child_spec) ->
+            [child_spec]
+
+          {:error, reason} ->
+            raise "Adapter config invalid for #{inspect(cloud_module)}: #{reason}"
+        end
+      else
+        # Adapter doesn't need any supervised processes
+        []
+      end
+
+    if children == [] do
+      Logger.warning("""
+      Cloud supervisor for #{inspect(cloud_module)} has no children to supervise.
+
+      The #{inspect(adapter)} adapter doesn't require any supervised processes.
+      Consider removing #{inspect(cloud_module)} from your application's supervision 
+      tree to avoid unnecessary overhead.
+
+      This supervisor is only needed for adapters that require background processes 
+      (like GCS authentication servers).
+      """)
+    end
 
     Supervisor.init(children, strategy: :one_for_one)
   end
-
-  ## Private
-
-  defp child_spec_for_location(Buckets.Adapters.GCS, cloud_module, location_key) do
-    %{
-      id: {GCS.AuthServer, location_key},
-      start: {GCS.AuthServer, :start_link, [cloud_module, location_key]},
-      restart: :permanent
-    }
-  end
-
-  defp child_spec_for_location(_adapter, _cloud_module, _location_key), do: nil
 end

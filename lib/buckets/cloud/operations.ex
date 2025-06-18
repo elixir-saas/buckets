@@ -8,6 +8,8 @@ defmodule Buckets.Cloud.Operations do
   end
 
   def insert(module, %Object{location: %Location.NotConfigured{}} = object, opts) do
+    config = module.config()
+
     metadata = %{
       cloud_module: module,
       filename: object.filename,
@@ -15,18 +17,17 @@ defmodule Buckets.Cloud.Operations do
     }
 
     Telemetry.span([:buckets, :cloud, :insert], metadata, fn ->
-      {location, opts} = Keyword.pop(opts, :config, :default)
-
-      location_config = module.config_for(location)
-      location_path = default_object_location(module, object, location_config)
-      location = Location.new(location_path, location_config)
+      location_path = default_object_location(module, object, config)
+      location = Location.new(location_path, config)
 
       insert(module, %{object | location: location}, opts)
     end)
   end
 
-  def insert(_module, %Object{} = object, _opts) do
-    case Buckets.put(object, object.location.path, object.location.config) do
+  def insert(module, %Object{} = object, _opts) do
+    config = module.config()
+
+    case Buckets.put(object, object.location.path, config) do
       {:ok, _meta} ->
         {:ok, %{object | stored?: true}}
 
@@ -36,14 +37,16 @@ defmodule Buckets.Cloud.Operations do
   end
 
   def delete(%Object{} = object) do
+    config = object.location.config
+
     metadata = %{
       filename: object.filename,
       path: object.location.path,
-      adapter: object.location.config[:adapter]
+      adapter: config[:adapter]
     }
 
     Telemetry.span([:buckets, :cloud, :delete], metadata, fn ->
-      case Buckets.delete(object.location.path, object.location.config) do
+      case Buckets.delete(object.location.path, config) do
         {:ok, _meta} ->
           {:ok, %{object | stored?: false}}
 
@@ -68,14 +71,16 @@ defmodule Buckets.Cloud.Operations do
   end
 
   def read(%Object{} = object) do
+    config = object.location.config
+
     metadata = %{
       filename: object.filename,
       path: object.location.path,
-      adapter: object.location.config[:adapter]
+      adapter: config[:adapter]
     }
 
     Telemetry.span([:buckets, :cloud, :read], metadata, fn ->
-      Buckets.get(object.location.path, object.location.config)
+      Buckets.get(object.location.path, config)
     end)
   end
 
@@ -86,26 +91,30 @@ defmodule Buckets.Cloud.Operations do
   end
 
   def load(module, %Object{data: nil} = object, opts) do
+    config = object.location.config
+
     metadata = %{
-      cloud_module: module,
+      adapter: config[:adapter],
       filename: object.filename,
       path: object.location.path,
-      adapter: object.location.config[:adapter],
       to: opts[:to]
     }
 
     Telemetry.span([:buckets, :cloud, :load], metadata, fn ->
-      case Buckets.get(object.location.path, object.location.config) do
+      case Buckets.get(object.location.path, config) do
         {:ok, data} ->
           scoped_path = fn segments ->
             Path.join(segments ++ [object.uuid, object.filename])
           end
 
+          # Get tmp_dir from cloud module  
+          tmp_dir = module.tmp_dir()
+
           object_data =
             case opts[:to] do
               nil -> {:data, data}
-              :tmp -> {:file, scoped_path.([module.tmp_dir()])}
-              {:tmp, path} -> {:file, scoped_path.([module.tmp_dir(), path])}
+              :tmp -> {:file, scoped_path.([tmp_dir])}
+              {:tmp, path} -> {:file, scoped_path.([tmp_dir, path])}
               path when is_binary(path) -> {:file, scoped_path.([path])}
             end
 
@@ -149,33 +158,33 @@ defmodule Buckets.Cloud.Operations do
   end
 
   def url(%Object{} = object, opts) do
+    config = object.location.config
+
     metadata = %{
       filename: object.filename,
       path: object.location.path,
-      adapter: object.location.config[:adapter]
+      adapter: config[:adapter]
     }
 
     Telemetry.span([:buckets, :cloud, :url], metadata, fn ->
-      Buckets.url(object.location.path, Keyword.merge(opts, object.location.config))
+      Buckets.url(object.location.path, Keyword.merge(opts, config))
     end)
   end
 
   def live_upload(module, entry, opts) do
-    {location, opts} = Keyword.pop(opts, :location, :default)
-
     object = Object.from_upload(entry)
-    location_config = module.config_for(location)
-    location_path = default_object_location(module, object, location_config)
+    config = module.config()
+    location_path = default_object_location(module, object, config)
 
     uploader =
-      location_config[:uploader] ||
+      config[:uploader] ||
         raise """
         Must specifiy the :uploader config option to use `live_upload/2`.
         """
 
     url_opts =
       opts
-      |> Keyword.merge(location_config)
+      |> Keyword.merge(config)
       |> Keyword.put(:for_upload, true)
 
     with {:ok, signed_url} <- Buckets.url(location_path, url_opts) do

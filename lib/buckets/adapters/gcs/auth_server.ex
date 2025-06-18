@@ -16,31 +16,23 @@ defmodule Buckets.Adapters.GCS.AuthServer do
   @refresh_margin_seconds 300
 
   @doc """
-  Starts the token server for the given cloud module and location key.
+  Starts the token server.
+
+  If opts[:cloud] exists, starts in named mode with the cloud module.
+  Otherwise, treats opts as config and starts in nameless mode.
   """
-  def start_link(cloud_module, location_key) do
-    name = server_name_for_location(location_key)
-    GenServer.start_link(__MODULE__, {cloud_module, location_key}, name: name)
-  end
+  def start_link(opts) do
+    case opts[:cloud] do
+      cloud_module when is_atom(cloud_module) ->
+        # Named mode: derive config from cloud module
+        config = cloud_module.config()
+        name = Module.concat(cloud_module, GCS.AuthServer)
+        GenServer.start_link(__MODULE__, {cloud_module, config}, name: name)
 
-  @doc """
-  Gets an access token for the given config (which should include __location_key__).
-  """
-  def get_token_from_config(config) when is_list(config) do
-    location_key =
-      config[:__location_key__] ||
-        raise """
-        Missing :__location_key__ in location configuration.
-        """
-
-    server_name = server_name_for_location(location_key)
-
-    GenServer.whereis(server_name) ||
-      raise """
-      No AuthServer running for location #{inspect(location_key)}.
-      """
-
-    get_token(server_name)
+      nil ->
+        # Nameless mode: treat opts as config
+        GenServer.start_link(__MODULE__, {nil, opts})
+    end
   end
 
   @doc """
@@ -60,13 +52,14 @@ defmodule Buckets.Adapters.GCS.AuthServer do
   ## Impl
 
   @impl true
-  def init({cloud_module, location_key}) do
-    case load_credentials_for_location(cloud_module, location_key) do
+  def init({cloud_module, config}) do
+    case Auth.get_credentials(config) do
       {:ok, credentials} ->
         # Start with no token - will be fetched on first request
         state = %{
           credentials: credentials,
-          location_key: location_key,
+          cloud_module: cloud_module,
+          config: config,
           token: nil,
           expires_at: nil,
           refresh_timer: nil
@@ -75,7 +68,7 @@ defmodule Buckets.Adapters.GCS.AuthServer do
         {:ok, state}
 
       {:error, reason} ->
-        {:stop, {:credential_load_failed, location_key, reason}}
+        {:stop, {:credential_load_failed, cloud_module || :dynamic, reason}}
     end
   end
 
@@ -104,7 +97,7 @@ defmodule Buckets.Adapters.GCS.AuthServer do
   @impl true
   def handle_info(:refresh_token, state) do
     metadata = %{
-      location_key: state.location_key,
+      cloud_module: state.cloud_module,
       client_email: state.credentials["client_email"]
     }
 
@@ -128,10 +121,6 @@ defmodule Buckets.Adapters.GCS.AuthServer do
 
   ## Private
 
-  defp server_name_for_location(location_key) do
-    Module.concat(__MODULE__, Macro.camelize(to_string(location_key)))
-  end
-
   defp ensure_valid_token(state) do
     cond do
       state.token == nil ->
@@ -150,7 +139,7 @@ defmodule Buckets.Adapters.GCS.AuthServer do
 
   defp fetch_new_token(state) do
     metadata = %{
-      location_key: state.location_key,
+      cloud_module: state.cloud_module,
       client_email: state.credentials["client_email"]
     }
 
@@ -190,9 +179,5 @@ defmodule Buckets.Adapters.GCS.AuthServer do
       nil -> true
       expires_at -> System.system_time(:second) >= expires_at - @refresh_margin_seconds
     end
-  end
-
-  defp load_credentials_for_location(cloud_module, location_key) do
-    Auth.get_credentials(cloud_module.config_for(location_key))
   end
 end

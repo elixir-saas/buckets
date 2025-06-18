@@ -6,7 +6,7 @@ defmodule Buckets.Adapters.S3Test do
   import Buckets.Setup
   import Buckets.UploadFixtures
 
-  @s3_opts TestCloud.config_for(:amazon)
+  @s3_opts TestCloud.S3.config()
 
   setup :setup_scope
 
