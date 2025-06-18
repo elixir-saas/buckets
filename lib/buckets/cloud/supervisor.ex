@@ -39,22 +39,8 @@ defmodule Buckets.Cloud.Supervisor do
             raise "Adapter config invalid for #{inspect(cloud_module)}: #{reason}"
         end
       else
-        # Adapter doesn't need any supervised processes
         []
       end
-
-    if children == [] do
-      Logger.warning("""
-      Cloud supervisor for #{inspect(cloud_module)} has no children to supervise.
-
-      The #{inspect(adapter)} adapter doesn't require any supervised processes.
-      Consider removing #{inspect(cloud_module)} from your application's supervision 
-      tree to avoid unnecessary overhead.
-
-      This supervisor is only needed for adapters that require background processes 
-      (like GCS authentication servers).
-      """)
-    end
 
     Supervisor.init(children, strategy: :one_for_one)
   end
