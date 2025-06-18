@@ -36,7 +36,7 @@ Install by adding `buckets` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:buckets, "~> 1.0.0-rc.0"}
+    {:buckets, "~> 1.0.0-rc.1"}
   ]
 end
 ```
@@ -85,7 +85,7 @@ Configure your Cloud module with different adapters for different environments:
 # Development - local filesystem
 config :my_app, MyApp.Cloud,
   adapter: Buckets.Adapters.Volume,
-  bucket: "tmp/buckets_volume", 
+  bucket: "tmp/buckets_volume",
   base_url: "http://localhost:4000"
 
 # Production - Google Cloud Storage
@@ -98,7 +98,7 @@ config :my_app, MyApp.Cloud,
 config :my_app, MyApp.Cloud,
   adapter: Buckets.Adapters.S3,
   bucket: "my-app-production",
-  region: "us-east-1", 
+  region: "us-east-1",
   access_key_id: System.fetch_env!("AWS_ACCESS_KEY_ID"),
   secret_access_key: System.fetch_env!("AWS_SECRET_ACCESS_KEY")
 ```
@@ -194,7 +194,7 @@ defmodule MyApp.VolumeCloud do
   use Buckets.Cloud, otp_app: :my_app
 end
 
-# Google Cloud Storage  
+# Google Cloud Storage
 defmodule MyApp.GCSCloud do
   use Buckets.Cloud, otp_app: :my_app
 end
@@ -211,7 +211,7 @@ Configure each Cloud module separately:
 # Local filesystem
 config :my_app, MyApp.VolumeCloud,
   adapter: Buckets.Adapters.Volume,
-  bucket: "tmp/buckets_volume", 
+  bucket: "tmp/buckets_volume",
   base_url: "http://localhost:4000"
 
 # Google Cloud Storage
@@ -224,7 +224,7 @@ config :my_app, MyApp.GCSCloud,
 config :my_app, MyApp.S3Cloud,
   adapter: Buckets.Adapters.S3,
   bucket: "my-app-s3-bucket",
-  region: "us-east-1", 
+  region: "us-east-1",
   access_key_id: System.fetch_env!("AWS_ACCESS_KEY_ID"),
   secret_access_key: System.fetch_env!("AWS_SECRET_ACCESS_KEY")
 
@@ -234,10 +234,10 @@ config :my_app, MyApp.R2Cloud,
   provider: :cloudflare_r2,
   endpoint_url: "https://your-account-id.r2.cloudflarestorage.com",
   bucket: "my-bucket",
-  access_key_id: "your-r2-access-key", 
+  access_key_id: "your-r2-access-key",
   secret_access_key: "your-r2-secret-key"
 
-# DigitalOcean Spaces  
+# DigitalOcean Spaces
 config :my_app, MyApp.SpacesCloud,
   adapter: Buckets.Adapters.S3,
   provider: :digitalocean,
@@ -254,7 +254,7 @@ def start(_type, _args) do
     # ... your other processes
     MyApp.GCSCloud,        # Needs supervision for auth servers
     # MyApp.VolumeCloud,   # No supervision needed - would show warning
-    # MyApp.S3Cloud,       # No supervision needed - would show warning  
+    # MyApp.S3Cloud,       # No supervision needed - would show warning
     # MyApp.R2Cloud,       # No supervision needed - would show warning
     # MyApp.SpacesCloud    # No supervision needed - would show warning
   ]
@@ -272,7 +272,7 @@ Then choose the appropriate Cloud module for different use cases:
 # Store user uploads in S3
 user_avatar = MyApp.S3Cloud.insert!(upload)
 
-# Store application assets in GCS  
+# Store application assets in GCS
 processed_image = MyApp.GCSCloud.insert!(processed_file)
 
 # Store temporary files locally
@@ -294,11 +294,11 @@ def start(_type, _args) do
     # Your core application processes
     MyApp.Repo,
     MyAppWeb.Endpoint,
-    
+
     # Required for dynamic clouds (add only if using dynamic clouds)
     {Buckets.Cloud.DynamicSupervisor, []}
   ]
-  
+
   opts = [strategy: :one_for_one, name: MyApp.Supervisor]
   Supervisor.start_link(children, opts)
 end
