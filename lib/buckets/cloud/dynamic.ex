@@ -4,7 +4,7 @@ defmodule Buckets.Cloud.Dynamic do
 
   This module provides functions for managing runtime configuration changes,
   allowing Cloud modules to switch between different adapters and configurations
-  on a per-process basis, similar to `Ecto.Repo.put_dynamic_repo/1`.
+  on a per-process basis, similar to Ecto's dynamic repository functionality.
 
   ## Usage
 

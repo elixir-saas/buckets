@@ -182,7 +182,7 @@ defmodule Buckets.Cloud do
   @callback read!(object :: Buckets.Object.t()) :: binary()
 
   @doc """
-  Same as `c:load/1` but returns the object or raises if there is an error.
+  Same as `c:load/2` but returns the object or raises if there is an error.
   """
   @callback load!(object :: Buckets.Object.t(), opts :: Keyword.t()) :: Buckets.Object.t()
 
@@ -192,7 +192,7 @@ defmodule Buckets.Cloud do
   @callback url!(object :: Buckets.Object.t(), opts :: Keyword.t()) :: Buckets.Object.t()
 
   @doc """
-  Same as `c:live_upload/1` but returns the upload config or raises if there is an error.
+  Same as `c:live_upload/2` but returns the upload config or raises if there is an error.
   """
   @callback live_upload!(
               entry :: Phoenix.LiveView.UploadEntry.t(),
