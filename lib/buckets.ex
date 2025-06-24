@@ -1,4 +1,6 @@
 defmodule Buckets do
+  @version Mix.Project.config()[:version]
+
   @moduledoc """
   Cloud-agnostic file storage for Elixir with Phoenix integration.
 
@@ -28,7 +30,7 @@ defmodule Buckets do
 
       ```elixir
       def deps do
-        [{:buckets, "~> 1.0.0-rc.2"}]
+        [{:buckets, "~> #{@version}"}]
       end
       ```
 
