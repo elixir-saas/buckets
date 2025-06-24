@@ -8,8 +8,7 @@ defmodule Buckets.Cloud do
   When used, it expects `:otp_app` as an option:
 
       defmodule MyApp.Cloud do
-        use Buckets.Cloud,
-          otp_app: :my_app
+        use Buckets.Cloud, otp_app: :my_app
       end
 
   Configuration is fetched from the application config, using a combination of

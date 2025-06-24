@@ -147,7 +147,7 @@ defmodule Buckets.Adapters.GCS do
           [verb: "GET", expires: 3600]
         end
 
-      opts = Keyword.merge(opts, config[:gcs_signed_url] || [])
+      opts = Keyword.merge(opts, config)
 
       case Signature.generate_v4(credentials, bucket, remote_path, opts) do
         {:ok, signed_url} ->
