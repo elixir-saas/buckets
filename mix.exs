@@ -4,7 +4,7 @@ defmodule Buckets.MixProject do
   def project do
     [
       app: :buckets,
-      version: "1.0.0-rc.1",
+      version: "1.0.0-rc.2",
       elixir: "~> 1.17",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
