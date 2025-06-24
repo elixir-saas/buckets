@@ -41,7 +41,7 @@ defmodule Buckets.Cloud do
 
   ## Supervision
 
-  Cloud modules start a supervisor that manages any background processes required 
+  Cloud modules start a supervisor that manages any background processes required
   by the configured adapter. Some adapters (like GCS) need authentication servers,
   while others (like Volume, S3) don't need any supervised processes.
 

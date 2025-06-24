@@ -15,9 +15,9 @@ Supports:
 - [x] File System ([`Buckets.Adapters.Volume`](./lib/buckets/adapters/volume.ex))
 - [x] Google Cloud Storage ([`Buckets.Adapters.GCS`](./lib/buckets/adapters/gcs.ex))
 - [x] Amazon S3 ([`Buckets.Adapters.S3`](./lib/buckets/adapters/s3.ex))
-- [x] Cloudflare R2 ([`Buckets.Adapters.S3` with `provider: :cloudflare`](./lib/buckets/adapters/s3.ex))
-- [x] DigitalOcean Spaces ([`Buckets.Adapters.S3` with `provider: :digitalocean`](./lib/buckets/adapters/s3.ex))
-- [x] Tigris ([`Buckets.Adapters.S3` with `provider: :tigris`](./lib/buckets/adapters/s3.ex))
+- [x] Cloudflare R2 ([`Buckets.Adapters.S3`](./lib/buckets/adapters/s3.ex) with `provider: :cloudflare`)
+- [x] DigitalOcean Spaces ([`Buckets.Adapters.S3`](./lib/buckets/adapters/s3.ex) with `provider: :digitalocean`)
+- [x] Tigris ([`Buckets.Adapters.S3`](./lib/buckets/adapters/s3.ex) with `provider: :tigris`)
 
 Features:
 
@@ -43,6 +43,78 @@ end
 
 Full documentation at <https://hexdocs.pm/buckets>.
 
+## Getting started
+
+### 1. Create your Cloud module
+
+Start by creating a single Cloud module for your application:
+
+```elixir
+defmodule MyApp.Cloud do
+  use Buckets.Cloud, otp_app: :my_app
+end
+```
+
+### 2. Add to your supervision tree
+
+Some adapters (like GCS) require authentication servers, add your Cloud module to
+your application supervision tree to start any required processes:
+
+```elixir
+def start(_type, _args) do
+  children = [
+    # ... other children
+    MyApp.Cloud
+  ]
+
+  opts = [strategy: :one_for_one, name: MyApp.Supervisor]
+  Supervisor.start_link(children, opts)
+end
+```
+
+### 3. Configure your Cloud module
+
+Configure your Cloud module with different adapters for different environments:
+
+```elixir
+# Development - local filesystem
+config :my_app, MyApp.Cloud,
+  adapter: Buckets.Adapters.Volume,
+  bucket: "tmp/buckets_volume",
+  base_url: "http://localhost:4000",
+  # Optional: base path within bucket
+  path: "uploads",
+  # Optional: custom endpoint for signed URLs (defaults to "/__buckets__")
+  endpoint: "/__storage__",
+  # Optional: uploader module for LiveView direct uploads
+  uploader: "S3"
+
+# Production - Google Cloud Storage
+config :my_app, MyApp.Cloud,
+  adapter: Buckets.Adapters.GCS,
+  bucket: "my-app-production",
+  # Use JSON credentials string
+  service_account_credentials: System.fetch_env!("GOOGLE_CREDENTIALS"),
+  # Or use path to credentials file
+  # service_account_path: "/path/to/credentials.json",
+  # Optional: base path within bucket
+  path: "app/uploads",
+  # Optional: uploader module for LiveView direct uploads
+  uploader: "GCS"
+
+# Alternative production - Amazon S3
+config :my_app, MyApp.Cloud,
+  adapter: Buckets.Adapters.S3,
+  bucket: "my-app-production",
+  region: "us-east-1",
+  access_key_id: System.fetch_env!("AWS_ACCESS_KEY_ID"),
+  secret_access_key: System.fetch_env!("AWS_SECRET_ACCESS_KEY"),
+  # Optional: base path within bucket
+  path: "production/files",
+  # Optional: uploader module for LiveView direct uploads
+  uploader: "S3"
+```
+
 ## Core Concepts
 
 ### Cloud Module
@@ -64,65 +136,6 @@ The entrypoint to using Buckets is through a `Cloud`, which you declare in your 
 - **Stored** (`stored?: true`) - File has been uploaded and has a remote location
 - **Data loaded** - File data is available in memory or as a local file
 - **Data not loaded** - Only metadata is available, data must be fetched from remote storage
-
-## Getting started
-
-### 1. Create your Cloud module
-
-Start by creating a single Cloud module for your application:
-
-```elixir
-defmodule MyApp.Cloud do
-  use Buckets.Cloud, otp_app: :my_app
-end
-```
-
-### 2. Configure your Cloud module
-
-Configure your Cloud module with different adapters for different environments:
-
-```elixir
-# Development - local filesystem
-config :my_app, MyApp.Cloud,
-  adapter: Buckets.Adapters.Volume,
-  bucket: "tmp/buckets_volume",
-  base_url: "http://localhost:4000"
-
-# Production - Google Cloud Storage
-config :my_app, MyApp.Cloud,
-  adapter: Buckets.Adapters.GCS,
-  bucket: "my-app-production",
-  service_account_credentials: System.fetch_env!("GOOGLE_CREDENTIALS")
-
-# Alternative production - Amazon S3
-config :my_app, MyApp.Cloud,
-  adapter: Buckets.Adapters.S3,
-  bucket: "my-app-production",
-  region: "us-east-1",
-  access_key_id: System.fetch_env!("AWS_ACCESS_KEY_ID"),
-  secret_access_key: System.fetch_env!("AWS_SECRET_ACCESS_KEY")
-```
-
-### 3. Add to your supervision tree (if needed)
-
-**Only add your Cloud module to supervision if it uses an adapter that needs background processes.**
-
-Some adapters (like GCS) require authentication servers, while others (like Volume, S3) work without supervision:
-
-```elixir
-def start(_type, _args) do
-  children = [
-    # ... your other processes
-    # Only add if using GCS adapter - Volume/S3 don't need supervision
-    MyApp.Cloud  # Add this line only for GCS
-  ]
-
-  opts = [strategy: :one_for_one, name: MyApp.Supervisor]
-  Supervisor.start_link(children, opts)
-end
-```
-
-If you add a Cloud module that doesn't need supervision, you'll see a warning message suggesting you remove it to avoid unnecessary overhead.
 
 ## Usage
 
@@ -163,11 +176,75 @@ object = MyApp.Storage.get_object!(object_id)
 remote_object =
   Buckets.Object.new(object.id, object.filename,
     metadata: object.metadata,
-    location: {object.path, {:module, MyApp.Cloud}}
+    location: {object.path, MyApp.Cloud}
   )
 
 {:ok, data} = MyApp.Cloud.read(remote_object)
 ```
+
+## LiveView Direct Uploads
+
+Buckets integrates seamlessly with Phoenix LiveView for direct-to-cloud uploads. This allows users to upload files directly to your cloud storage without going through your server.
+
+### Configuration
+
+To enable LiveView uploads, you must configure the `:uploader` option for your Cloud module:
+
+```elixir
+config :my_app, MyApp.Cloud,
+  adapter: Buckets.Adapters.S3,
+  bucket: "my-uploads",
+  # Required for LiveView uploads - use the uploader that matches your adapter
+  uploader: "S3",  # Use "GCS" for Google Cloud Storage, "S3" for S3/R2/Spaces/Tigris
+  # ... other configuration
+```
+
+### Usage in LiveView
+
+```elixir
+defmodule MyAppWeb.UploadLive do
+  use MyAppWeb, :live_view
+
+  def mount(_params, _session, socket) do
+    {:ok,
+     socket
+     |> assign(:uploaded_files, [])
+     |> allow_upload(:avatar,
+       accept: ~w(.jpg .jpeg .png),
+       external: &presign_upload/2,
+       progress: &handle_progress/3,
+       auto_upload: true
+     )}
+  end
+
+  def presign_upload(entry, socket) do
+    {:ok, upload_config} = MyApp.Cloud.live_upload(entry)
+    {:ok, upload_config, socket}
+  end
+
+  def handle_progress(_type, entry, socket) do
+    if entry.done? do
+      %{object: object} =
+        consume_uploaded_entry(socket, entry, fn meta ->
+          object = Buckets.Object.from_upload({entry, meta})
+
+          # Object is already stored, since we used an external uploader.
+          true = object.stored?
+
+          # Persist object data to database, etc.
+          {:ok, object}
+        end)
+
+      {:noreply, socket}
+    else
+      {:noreply, socket}
+    end
+  end
+```
+
+The `live_upload/2` function returns a map with:
+- `:uploader` - The configured uploader type ("S3", "GCS", etc.)
+- `:url` - A signed URL for direct upload to the cloud storage
 
 ## Dev router
 
@@ -178,7 +255,7 @@ module and add the routes for accepting local uploads:
 if Application.compile_env(:my_app, :dev_routes) do
   import Buckets.Router
 
-  buckets_volume(path: "tmp/buckets_volume")
+  buckets_volume(MyApp.Cloud)
 end
 ```
 
@@ -231,19 +308,36 @@ config :my_app, MyApp.S3Cloud,
 # Cloudflare R2
 config :my_app, MyApp.R2Cloud,
   adapter: Buckets.Adapters.S3,
-  provider: :cloudflare_r2,
+  provider: :cloudflare,
   endpoint_url: "https://your-account-id.r2.cloudflarestorage.com",
   bucket: "my-bucket",
   access_key_id: "your-r2-access-key",
-  secret_access_key: "your-r2-secret-key"
+  secret_access_key: "your-r2-secret-key",
+  # R2 automatically uses region: "auto"
+  uploader: "S3"
 
 # DigitalOcean Spaces
 config :my_app, MyApp.SpacesCloud,
   adapter: Buckets.Adapters.S3,
   provider: :digitalocean,
   bucket: "my-bucket",
+  # Defaults to nyc3 region and endpoint
+  # region: "nyc3",
+  # endpoint_url: "https://nyc3.digitaloceanspaces.com",
   access_key_id: "your-spaces-key",
-  secret_access_key: "your-spaces-secret"
+  secret_access_key: "your-spaces-secret",
+  uploader: "S3"
+
+# Tigris
+config :my_app, MyApp.TigrisCloud,
+  adapter: Buckets.Adapters.S3,
+  provider: :tigris,
+  bucket: "my-bucket",
+  region: "auto",
+  # Tigris automatically uses endpoint: "https://fly.storage.tigris.dev"
+  access_key_id: "your-tigris-access-key",
+  secret_access_key: "your-tigris-secret-key",
+  uploader: "S3"
 ```
 
 Add only the Cloud modules that need supervision to your supervision tree:
@@ -282,33 +376,21 @@ temp_file = MyApp.VolumeCloud.insert!(temp_data)
 cdn_asset = MyApp.R2Cloud.insert!(optimized_image)
 ```
 
-### Dynamic Cloud Modules
+### Dynamic Cloud Configuration
 
-For multi-tenant applications where each user has their own cloud storage credentials, you can create dynamic cloud instances at runtime.
-
-**Setup Required**: Dynamic clouds need additional supervision. Add these to your application's supervision tree:
-
-```elixir
-def start(_type, _args) do
-  children = [
-    # Your core application processes
-    MyApp.Repo,
-    MyAppWeb.Endpoint,
-
-    # Required for dynamic clouds (add only if using dynamic clouds)
-    {Buckets.Cloud.DynamicSupervisor, []}
-  ]
-
-  opts = [strategy: :one_for_one, name: MyApp.Supervisor]
-  Supervisor.start_link(children, opts)
-end
-```
+For multi-tenant applications where cloud configurations are determined at runtime, every Cloud module supports dynamic configuration using the process dictionary. This approach is similar to Ecto's dynamic repositories.
 
 **Usage**:
 
+There are two ways to use dynamic configuration:
+
+#### 1. Scoped Configuration (like Ecto transactions)
+
+Use `with_config/2` for temporary configuration:
+
 ```elixir
-# Create a dynamic cloud for a specific user
-user_config = [
+# Define the runtime configuration
+config = [
   adapter: Buckets.Adapters.S3,
   bucket: "user-#{user.id}-bucket",
   access_key_id: user.aws_access_key,
@@ -316,47 +398,114 @@ user_config = [
   region: "us-east-1"
 ]
 
-# For GCS, you must include an :id field for auth server lookup
-gcs_config = [
+# Execute operations with the dynamic config
+object = MyApp.Cloud.with_config(config, fn ->
+  MyApp.Cloud.insert!("file.pdf")
+end)
+```
+
+#### 2. Process-Local Configuration (like Ecto.Repo.put_dynamic_repo)
+
+Use `put_dynamic_config/1` for persistent configuration in the current process:
+
+```elixir
+# Set dynamic config for this process
+:ok = MyApp.Cloud.put_dynamic_config([
   adapter: Buckets.Adapters.GCS,
-  id: "user_#{user.id}",  # Required for GCS dynamic configs
-  bucket: "user-#{user.id}-bucket",
-  service_account_credentials: user.gcs_credentials
-]
+  bucket: "tenant-#{tenant.id}-bucket",
+  service_account_credentials: tenant.gcs_credentials
+])
 
-{:ok, user_cloud_pid} = Buckets.Cloud.start_dynamic(user_config)
-
-# Use it exactly like a static cloud
-{:ok, object} = Buckets.Cloud.Dynamic.insert(user_cloud_pid, upload)
-{:ok, loaded_object} = Buckets.Cloud.Dynamic.load(user_cloud_pid, object)
+# All subsequent operations use the dynamic config
+{:ok, object1} = MyApp.Cloud.insert("file1.pdf")
+{:ok, object2} = MyApp.Cloud.insert("file2.pdf")
 ```
 
-You can also register dynamic clouds by name for easy lookup:
-
-```elixir
-# Register a dynamic cloud by user ID
-:ok = Buckets.Cloud.register_dynamic("user_#{user.id}", user_config)
-
-# Later, get the cloud by name and use it
-{:ok, user_cloud} = Buckets.Cloud.get_dynamic("user_#{user.id}")
-{:ok, object} = Buckets.Cloud.Dynamic.insert(user_cloud, "file.pdf")
-```
-
-Clean up dynamic clouds when no longer needed:
-
-```elixir
-# Stop by pid
-:ok = Buckets.Cloud.stop_dynamic(user_cloud_pid)
-
-# Stop by name
-:ok = Buckets.Cloud.stop_dynamic("user_#{user.id}")
-```
-
-Dynamic clouds are perfect for:
+Dynamic configuration is perfect for:
 - Multi-tenant applications where each tenant has their own storage
 - Applications that need runtime-configurable storage
 - Testing with temporary cloud configurations
 - Isolating storage per user or organization
+
+**Note**: Auth servers (for GCS) are automatically started and cached per-process as needed. You don't need any special configuration or supervision setup for dynamic clouds.
+
+## Error Handling
+
+Buckets provides two versions of most operations: one that returns `{:ok, result}` or `{:error, reason}` tuples, and a bang (!) version that returns the result or raises an exception.
+
+### Common Errors
+
+1. **Configuration Errors**
+   - Missing required configuration options
+   - Invalid credentials
+   - Non-existent buckets
+
+2. **Network Errors**
+   - Connection timeouts
+   - Network failures
+   - Service unavailability
+
+3. **Permission Errors**
+   - Insufficient permissions
+   - Invalid or expired credentials
+   - Access denied to specific resources
+
+4. **File Errors**
+   - File not found (`:not_found`)
+   - File too large
+   - Invalid file format
+
+### Error Handling Examples
+
+```elixir
+# Using pattern matching with tuple returns
+case MyApp.Cloud.insert(upload) do
+  {:ok, object} ->
+    # Handle success
+    IO.puts("File uploaded: #{object.filename}")
+
+  {:error, :not_found} ->
+    # Handle specific error
+    IO.puts("File not found")
+
+  {:error, reason} ->
+    # Handle general error
+    Logger.error("Upload failed: #{inspect(reason)}")
+end
+
+# Using bang functions with try/rescue
+try do
+  object = MyApp.Cloud.insert!(upload)
+  IO.puts("File uploaded: #{object.filename}")
+rescue
+  e in RuntimeError ->
+    Logger.error("Upload failed: #{e.message}")
+end
+
+# Loading objects with error handling
+case MyApp.Cloud.load(object) do
+  {:ok, loaded_object} ->
+    # Object data is now available
+    data = Buckets.Object.read!(loaded_object)
+
+  {:error, :not_found} ->
+    # Object doesn't exist in remote storage
+    Logger.warn("Object not found in storage")
+
+  {:error, reason} ->
+    Logger.error("Failed to load object: #{inspect(reason)}")
+end
+```
+
+### Adapter-Specific Errors
+
+Different adapters may return specific error types:
+
+- **GCS**: Authentication errors, quota exceeded, bucket not found
+- **S3**: Access denied, region mismatch, signature errors
+- **Volume**: File system errors, permission denied, disk full
+
+Always check your adapter's documentation for specific error conditions.
 
 ## Testing
 

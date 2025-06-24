@@ -8,7 +8,7 @@ defmodule Buckets.Cloud.Dynamic do
 
   ## Usage
 
-  These functions are automatically available on Cloud modules that use 
+  These functions are automatically available on Cloud modules that use
   `Buckets.Cloud`. You typically don't need to call this module directly.
 
   ### Process-Local Configuration
@@ -31,6 +31,8 @@ defmodule Buckets.Cloud.Dynamic do
   are automatically started and cached per-process as needed through the
   adapter's `prepare_dynamic_config/1` callback.
   """
+
+  require Logger
 
   @doc """
   Gets the current configuration for the given cloud module.
@@ -90,7 +92,31 @@ defmodule Buckets.Cloud.Dynamic do
   ## Private
 
   defp static_config(cloud_module, otp_app) do
-    config = Application.fetch_env!(otp_app, cloud_module)
+    config =
+      case Application.fetch_env(otp_app, cloud_module) do
+        {:ok, config} ->
+          config
+
+        :error ->
+          # Default to Volume adapter with sensible defaults
+          Logger.warning("""
+          No configuration found for #{inspect(cloud_module)} in application #{inspect(otp_app)}.
+          Using default Volume adapter configuration.
+
+          To configure your cloud module, add the following to your config:
+
+              config #{inspect(otp_app)}, #{inspect(cloud_module)},
+                adapter: Buckets.Adapters.Volume,
+                bucket: "tmp/buckets_volume",
+                base_url: "http://localhost:4000"
+          """)
+
+          [
+            adapter: Buckets.Adapters.Volume,
+            bucket: "tmp/buckets_volume",
+            base_url: "http://localhost:4000"
+          ]
+      end
 
     adapter =
       config[:adapter] ||

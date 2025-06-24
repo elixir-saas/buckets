@@ -1,4 +1,56 @@
 defmodule Buckets.Adapters.Volume do
+  @moduledoc """
+  Adapter for local filesystem storage.
+
+  The Volume adapter stores files on the local filesystem and is primarily intended
+  for development environments. It supports signed URLs and integrates with the
+  Buckets dev router for handling uploads and downloads.
+
+  ## Configuration
+
+      config :my_app, MyApp.Cloud,
+        adapter: Buckets.Adapters.Volume,
+        bucket: "tmp/buckets_volume",
+        base_url: "http://localhost:4000"
+
+  ## Required Options
+
+  - `:bucket` - The local directory path where files will be stored
+  - `:base_url` - The base URL for generating file URLs (e.g., your Phoenix app URL)
+
+  ## Optional Options
+
+  - `:path` - Base path within the bucket directory
+  - `:endpoint` - Custom endpoint path for signed URLs (defaults to "/__buckets__")
+  - `:uploader` - Uploader configuration for direct uploads
+
+  ## Development Router Integration
+
+  To handle local uploads and downloads in development, add the Volume routes to your router:
+
+      # In your router.ex
+      if Application.compile_env(:my_app, :dev_routes) do
+        import Buckets.Router
+
+        buckets_volume(MyApp.Cloud)
+      end
+
+  This will mount routes at `/__buckets__/:bucket/*path` for handling:
+  - File uploads (PUT requests)
+  - File downloads (GET requests)
+
+  ## Signed URLs
+
+  The Volume adapter supports signed URLs for secure file uploads and downloads:
+
+      {:ok, object} = MyApp.Cloud.url(object, expires_in: 3600)
+      # Returns object with signed URL valid for 1 hour
+
+  ## Supervision
+
+  This adapter does not require any supervised processes. Do not add Cloud modules
+  using this adapter to your supervision tree.
+  """
   @behaviour Buckets.Adapter
 
   @impl true

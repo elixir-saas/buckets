@@ -1,4 +1,5 @@
 defmodule Buckets.Cloud.Operations do
+  @moduledoc false
   alias Buckets.Object
   alias Buckets.Location
   alias Buckets.Telemetry
@@ -107,7 +108,7 @@ defmodule Buckets.Cloud.Operations do
             Path.join(segments ++ [object.uuid, object.filename])
           end
 
-          # Get tmp_dir from cloud module  
+          # Get tmp_dir from cloud module
           tmp_dir = module.tmp_dir()
 
           object_data =

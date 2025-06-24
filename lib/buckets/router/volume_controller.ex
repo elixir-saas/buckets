@@ -1,4 +1,17 @@
 defmodule Buckets.Router.VolumeController do
+  @moduledoc """
+  Phoenix controller for handling local file uploads and downloads in development.
+
+  This controller is automatically used by the `Buckets.Router.buckets_volume/2`
+  macro to handle Volume adapter file operations.
+
+  ## Endpoints
+
+  - `get/2` - Downloads files from the local filesystem
+  - `put/2` - Uploads files to the local filesystem with signature validation
+
+  For usage and configuration, see `Buckets.Router`.
+  """
   use Phoenix.Controller
 
   plug(:validate_bucket)

@@ -2,8 +2,7 @@ defmodule Buckets.Adapters.GCS.AuthServer do
   @moduledoc """
   GenServer that manages Google Cloud Storage access tokens.
 
-  Automatically refreshes tokens before they expire to ensure
-  uninterrupted access to GCS APIs.
+  Automatically refreshes tokens before they expire to ensure uninterrupted access to GCS APIs.
   """
 
   use GenServer

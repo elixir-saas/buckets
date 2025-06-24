@@ -2,8 +2,8 @@ defmodule Buckets.Adapters.GCS do
   @moduledoc """
   Google Cloud Storage adapter for Buckets.
 
-  This adapter provides a native implementation for GCS operations using only
-  the `:req` HTTP client, without dependencies on `:google_api_storage`, `:gcs_signed_url`, or `:goth`.
+  This adapter provides a native implementation for GCS operations using
+  only `:req` as a dependency.
 
   ## Setup
 
@@ -24,29 +24,34 @@ defmodule Buckets.Adapters.GCS do
 
   ## Configuration
 
-  You can configure GCS locations using either service account credentials as a JSON string
+  You can configure GCS using either service account credentials as a JSON string
   or by providing a path to a service account JSON file:
 
-      config :my_app, MyCloud,
-        locations: [
-          gcs_direct: [
-            adapter: Buckets.Adapters.GCS,
-            bucket: "my-bucket",
-            path: "uploads",
-            service_account_credentials: System.fetch_env!("GOOGLE_CREDENTIALS")
-          ],
-          gcs_from_file: [
-            adapter: Buckets.Adapters.GCS,
-            bucket: "my-bucket",
-            path: "uploads",
-            service_account_path: "path/to/service-account.json"
-          ]
-        ]
+      # Using credentials from environment variable (JSON string)
+      config :my_app, MyApp.Cloud,
+        adapter: Buckets.Adapters.GCS,
+        bucket: "my-bucket",
+        service_account_credentials: System.fetch_env!("GOOGLE_CREDENTIALS")
+
+      # Using credentials from file path
+      config :my_app, MyApp.Cloud,
+        adapter: Buckets.Adapters.GCS,
+        bucket: "my-bucket",
+        service_account_path: "/path/to/service-account.json"
+
+  ## Optional Configuration
+
+      config :my_app, MyApp.Cloud,
+        adapter: Buckets.Adapters.GCS,
+        bucket: "my-bucket",
+        service_account_credentials: System.fetch_env!("GOOGLE_CREDENTIALS"),
+        # Optional: base path within bucket
+        path: "uploads",
+        # Optional: uploader module for LiveView direct uploads
+        uploader: "GCS"
 
   The `:service_account_credentials` option accepts a JSON string, making it easy to pass
-  credentials via environment variables:
-
-      service_account_credentials: System.get_env("GCS_SERVICE_ACCOUNT_JSON")
+  credentials via environment variables in production environments.
 
   ## Performance
 

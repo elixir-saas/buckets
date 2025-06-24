@@ -1,4 +1,87 @@
 defmodule Buckets.Adapters.S3 do
+  @moduledoc """
+  Adapter for Amazon S3 and S3-compatible storage services.
+
+  This adapter supports multiple S3-compatible providers through the `:provider` option:
+  - `:aws` (default) - Amazon S3
+  - `:cloudflare` - Cloudflare R2
+  - `:digitalocean` - DigitalOcean Spaces
+  - `:tigris` - Tigris
+
+  ## Configuration
+
+  ### Amazon S3 (default)
+
+      config :my_app, MyApp.Cloud,
+        adapter: Buckets.Adapters.S3,
+        bucket: "my-bucket",
+        region: "us-east-1",
+        access_key_id: System.fetch_env!("AWS_ACCESS_KEY_ID"),
+        secret_access_key: System.fetch_env!("AWS_SECRET_ACCESS_KEY")
+
+  ### Cloudflare R2
+
+      config :my_app, MyApp.Cloud,
+        adapter: Buckets.Adapters.S3,
+        provider: :cloudflare,
+        bucket: "my-bucket",
+        endpoint_url: "https://YOUR_ACCOUNT_ID.r2.cloudflarestorage.com",
+        access_key_id: System.fetch_env!("R2_ACCESS_KEY_ID"),
+        secret_access_key: System.fetch_env!("R2_SECRET_ACCESS_KEY")
+
+  Note: Cloudflare R2 automatically uses `region: "auto"`.
+
+  ### DigitalOcean Spaces
+
+      config :my_app, MyApp.Cloud,
+        adapter: Buckets.Adapters.S3,
+        provider: :digitalocean,
+        bucket: "my-bucket",
+        access_key_id: System.fetch_env!("SPACES_ACCESS_KEY"),
+        secret_access_key: System.fetch_env!("SPACES_SECRET_KEY")
+
+  Note: DigitalOcean Spaces defaults to NYC3 region and endpoint. Override with:
+
+      config :my_app, MyApp.Cloud,
+        adapter: Buckets.Adapters.S3,
+        provider: :digitalocean,
+        bucket: "my-bucket",
+        region: "sfo3",
+        endpoint_url: "https://sfo3.digitaloceanspaces.com",
+        access_key_id: System.fetch_env!("SPACES_ACCESS_KEY"),
+        secret_access_key: System.fetch_env!("SPACES_SECRET_KEY")
+
+  ### Tigris
+
+      config :my_app, MyApp.Cloud,
+        adapter: Buckets.Adapters.S3,
+        provider: :tigris,
+        bucket: "my-bucket",
+        region: "auto",
+        access_key_id: System.fetch_env!("TIGRIS_ACCESS_KEY_ID"),
+        secret_access_key: System.fetch_env!("TIGRIS_SECRET_ACCESS_KEY")
+
+  Note: Tigris automatically uses the endpoint `https://fly.storage.tigris.dev`.
+
+  ## Required Options
+
+  - `:bucket` - The S3 bucket name
+  - `:access_key_id` - AWS access key ID or equivalent
+  - `:secret_access_key` - AWS secret access key or equivalent
+  - `:region` - AWS region (defaults to "auto" for some providers)
+  - `:endpoint_url` - Required for non-AWS providers
+
+  ## Optional Options
+
+  - `:provider` - The S3-compatible provider (defaults to `:aws`)
+  - `:path` - Base path within the bucket
+  - `:uploader` - Uploader configuration for direct uploads
+
+  ## Supervision
+
+  This adapter does not require any supervised processes. You do not need to add Cloud modules
+  using this adapter to your supervision tree.
+  """
   @behaviour Buckets.Adapter
 
   require Logger
