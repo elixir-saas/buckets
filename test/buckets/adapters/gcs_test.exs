@@ -64,6 +64,41 @@ defmodule Buckets.Adapters.GCSTest do
     assert {:error, :not_found} = GCS.get(remote_path, @gcs_opts)
   end
 
+  @tag :live
+  @tag :live_gcs
+
+  test "upload to signed url", context do
+    %{data: {:file, path}} = pdf_object()
+    remote_path = "test/objects/#{context.scope}/signed_upload.pdf"
+
+    # Read the file content
+    file_content = File.read!(path)
+
+    # Generate a signed URL for upload
+    # The signature code now automatically includes the required host header
+    opts = Keyword.put(@gcs_opts, :for_upload, true)
+
+    assert {:ok, %Buckets.SignedURL{url: signed_url}} = GCS.url(remote_path, opts)
+
+    # Upload using the signed URL
+    # Try without explicitly setting the host header since Req should handle it
+    case Req.put(signed_url, body: file_content) do
+      {:ok, %{status: status}} when status in [200, 201] ->
+        # Success - verify the file was uploaded
+        assert {:ok, data} = GCS.get(remote_path, @gcs_opts)
+        assert data == file_content
+
+        # Clean up
+        assert {:ok, _} = GCS.delete(remote_path, @gcs_opts)
+
+      {:ok, %{status: status, body: body}} ->
+        flunk("Upload failed with status #{status}: #{inspect(body)}")
+
+      {:error, reason} ->
+        flunk("Upload request failed: #{inspect(reason)}")
+    end
+  end
+
   describe "validate_config/1" do
     test "accepts valid config with service_account_path" do
       config = [

@@ -42,13 +42,16 @@ defmodule Buckets.Adapters.GCS.Signature do
     credential_scope = "#{date_stamp}/auto/storage/goog4_request"
     credential = "#{client_email}/#{credential_scope}"
 
+    # Always include host header for V4 signatures
+    headers_with_host = ensure_host_header(headers)
+
     # Prepare query parameters
     query_params = %{
       "X-Goog-Algorithm" => "GOOG4-RSA-SHA256",
       "X-Goog-Credential" => credential,
       "X-Goog-Date" => request_timestamp,
       "X-Goog-Expires" => to_string(expires),
-      "X-Goog-SignedHeaders" => build_signed_headers_string(headers)
+      "X-Goog-SignedHeaders" => build_signed_headers_string(headers_with_host)
     }
 
     # Build canonical request
@@ -58,7 +61,7 @@ defmodule Buckets.Adapters.GCS.Signature do
         bucket,
         object_path,
         query_params,
-        headers
+        headers_with_host
       )
 
     # Build string to sign
@@ -85,11 +88,27 @@ defmodule Buckets.Adapters.GCS.Signature do
 
   ## Private
 
+  defp ensure_host_header(headers) do
+    # Check if host header already exists
+    has_host =
+      Enum.any?(headers, fn {key, _value} ->
+        String.downcase(to_string(key)) == "host"
+      end)
+
+    if has_host do
+      headers
+    else
+      # Add host header if not present
+      [{"host", "storage.googleapis.com"} | headers]
+    end
+  end
+
   defp format_timestamp(datetime) do
     datetime
     |> DateTime.truncate(:second)
     |> DateTime.to_iso8601(:basic)
     |> String.replace("Z", "")
+    |> Kernel.<>("Z")
   end
 
   defp build_signed_headers_string(headers) do
@@ -99,9 +118,9 @@ defmodule Buckets.Adapters.GCS.Signature do
     |> Enum.join(";")
   end
 
-  defp build_canonical_request(verb, _bucket, object_path, query_params, headers) do
-    # Encode object path
-    canonical_uri = "/" <> URI.encode(object_path, &uri_encode_char/1)
+  defp build_canonical_request(verb, bucket, object_path, query_params, headers) do
+    # Encode object path - for V4 signatures, include bucket name
+    canonical_uri = "/#{bucket}/" <> URI.encode(object_path, &uri_encode_char/1)
 
     # Build canonical query string
     canonical_query_string =
@@ -124,8 +143,8 @@ defmodule Buckets.Adapters.GCS.Signature do
     # Build signed headers
     signed_headers = build_signed_headers_string(headers)
 
-    # Hash empty payload for most requests
-    payload_hash = hash_sha256("")
+    # For V4 signatures, use UNSIGNED-PAYLOAD
+    payload_hash = "UNSIGNED-PAYLOAD"
 
     [
       verb,

@@ -64,6 +64,39 @@ defmodule Buckets.Adapters.S3Test do
     assert {:error, :not_found} = S3.get(remote_path, @s3_opts)
   end
 
+  @tag :live
+  @tag :live_s3
+
+  test "upload to signed url", context do
+    %{data: {:file, path}} = pdf_object()
+    remote_path = "test/objects/#{context.scope}/signed_upload.pdf"
+
+    # Read the file content
+    file_content = File.read!(path)
+
+    # Generate a signed URL for upload
+    opts = Keyword.put(@s3_opts, :for_upload, true)
+
+    assert {:ok, %Buckets.SignedURL{url: signed_url}} = S3.url(remote_path, opts)
+
+    # Upload using the signed URL
+    case Req.put(signed_url, body: file_content) do
+      {:ok, %{status: status}} when status in [200, 201] ->
+        # Success - verify the file was uploaded
+        assert {:ok, data} = S3.get(remote_path, @s3_opts)
+        assert data == file_content
+
+        # Clean up
+        assert {:ok, _} = S3.delete(remote_path, @s3_opts)
+
+      {:ok, %{status: status, body: body}} ->
+        flunk("Upload failed with status #{status}: #{inspect(body)}")
+
+      {:error, reason} ->
+        flunk("Upload request failed: #{inspect(reason)}")
+    end
+  end
+
   describe "validate_config/1" do
     test "accepts valid config" do
       config = [
