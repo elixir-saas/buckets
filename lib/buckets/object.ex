@@ -330,4 +330,18 @@ defmodule Buckets.Object do
       stored?: location != %Buckets.Location.NotConfigured{}
     }
   end
+
+  def from_upload(no_match) do
+    raise """
+    Buckets.Object.from_upload/1 expects one of the following as an argument:
+
+        * %Plug.Upload{}
+        * %Phoenix.LiveView.UploadEntry{}
+        * {%Phoenix.LiveView.UploadEntry{}, %{} = meta}
+
+    Received:
+
+        #{inspect(no_match)}
+    """
+  end
 end
