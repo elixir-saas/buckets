@@ -38,7 +38,7 @@ defmodule Buckets.Adapters.VolumeTest do
 
     expected_url =
       "http://localhost:4000/__buckets__/" <>
-        "#{URI.encode(@volume_opts[:bucket], &URI.char_unreserved?/1)}" <>
+        "#{Base.url_encode64(@volume_opts[:bucket], padding: false)}" <>
         "/test/objects/#{context.scope}/simple.pdf"
 
     assert {:ok, %Buckets.SignedURL{url: ^expected_url}} = Volume.url(remote_path, @volume_opts)

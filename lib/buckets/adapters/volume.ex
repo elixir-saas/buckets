@@ -97,7 +97,7 @@ defmodule Buckets.Adapters.Volume do
     params = %{}
     params = if config[:for_upload], do: Map.put(params, :verb, "PUT"), else: params
 
-    bucket_encoded = URI.encode(config[:bucket], &URI.char_unreserved?/1)
+    bucket_encoded = Base.url_encode64(config[:bucket], padding: false)
     path = [Buckets.Router.scope(), bucket_encoded, remote_path]
 
     path =

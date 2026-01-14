@@ -12,9 +12,8 @@ defmodule Buckets.Router.VolumeController do
 
   For usage and configuration, see `Buckets.Router`.
   """
-  use Phoenix.Controller
+  use Phoenix.Controller, formats: []
 
-  plug(:validate_bucket)
   plug(:validate_signature)
 
   def get(conn, %{"path" => path}) do
@@ -34,13 +33,14 @@ defmodule Buckets.Router.VolumeController do
     send_download(conn, {:binary, binary}, filename: object.filename)
   end
 
-  def put(conn, %{"bucket" => bucket, "path" => path} = params) do
+  def put(conn, %{"path" => path} = params) do
     if params["verb"] != "PUT" do
       raise """
       Tried to upload file to a URL not designated for uploads.
       """
     end
 
+    bucket = conn.private.cloud_module.config()[:bucket]
     path = Path.join([bucket | path])
     File.mkdir_p!(Path.dirname(path))
 
@@ -53,21 +53,6 @@ defmodule Buckets.Router.VolumeController do
   end
 
   ## Plugs
-
-  defp validate_bucket(conn, _opts) do
-    cloud_module = conn.private.cloud_module
-
-    if cloud_module.config()[:bucket] == conn.path_params["bucket"] do
-      conn
-    else
-      raise """
-      The `"bucket"` parameter must match the `:bucket` configured for: #{inspect(cloud_module)}.
-
-          Check that the configuration you are using to generate the volume upload URL matches
-          the cloud module configured in your Router module.
-      """
-    end
-  end
 
   defp validate_signature(conn, _opts) do
     import Buckets.Adapters.Volume, only: [verify_signed_path: 3]
