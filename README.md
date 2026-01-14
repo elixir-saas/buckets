@@ -36,7 +36,7 @@ Install by adding `buckets` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:buckets, "~> 1.0.0-rc.4"}
+    {:buckets, "~> 1.0.0"}
   ]
 end
 ```
