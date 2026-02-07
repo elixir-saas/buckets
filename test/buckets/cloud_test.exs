@@ -75,6 +75,23 @@ defmodule Buckets.CloudTest do
       assert object.location.path =~ "test_other/objects/"
     end
 
+    test "inserts and copies object" do
+      assert {:ok, %{stored?: true} = object} = TestCloud.insert("priv/simple.pdf")
+
+      dest_path = "test/objects/copied/simple_copy.pdf"
+      assert {:ok, %{stored?: true} = copied} = TestCloud.copy(object, dest_path)
+
+      assert copied.uuid != object.uuid
+      assert copied.filename == "simple_copy.pdf"
+      assert copied.data == nil
+      assert copied.location.path == dest_path
+
+      # Both objects should be readable
+      assert {:ok, original_data} = TestCloud.read(object)
+      assert {:ok, copied_data} = TestCloud.read(copied)
+      assert original_data == copied_data
+    end
+
     test "inserts object" do
       object = Buckets.Object.from_file("priv/simple.pdf")
 

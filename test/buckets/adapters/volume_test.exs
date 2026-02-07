@@ -44,6 +44,22 @@ defmodule Buckets.Adapters.VolumeTest do
     assert {:ok, %Buckets.SignedURL{url: ^expected_url}} = Volume.url(remote_path, @volume_opts)
   end
 
+  test "copy", context do
+    setup_bucket(context, @volume_opts)
+
+    source_path = "test/objects/#{context.scope}/simple.pdf"
+    dest_path = "test/objects/#{context.scope}/copied.pdf"
+
+    assert {:ok, %{}} = Volume.copy(source_path, dest_path, @volume_opts)
+
+    source_full = Path.join(@volume_opts[:bucket], source_path)
+    dest_full = Path.join(@volume_opts[:bucket], dest_path)
+
+    assert File.exists?(source_full)
+    assert File.exists?(dest_full)
+    assert File.read!(source_full) == File.read!(dest_full)
+  end
+
   test "delete", context do
     setup_bucket(context, @volume_opts)
 

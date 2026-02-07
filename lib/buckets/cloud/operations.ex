@@ -277,6 +277,77 @@ defmodule Buckets.Cloud.Operations do
     end
   end
 
+  def copy(module, %Object{} = object, destination_path, _opts) do
+    source_config = Location.get_config(object.location)
+    dest_config = module.config()
+
+    source_adapter = source_config[:adapter]
+    dest_adapter = dest_config[:adapter]
+
+    metadata = %{
+      cloud_module: module,
+      source_path: object.location.path,
+      destination_path: destination_path,
+      source_adapter: source_adapter,
+      dest_adapter: dest_adapter
+    }
+
+    Telemetry.span([:buckets, :cloud, :copy], metadata, fn ->
+      same_cloud? =
+        source_adapter == dest_adapter and
+          source_config[:bucket] == dest_config[:bucket]
+
+      result =
+        if same_cloud? and function_exported?(dest_adapter, :copy, 3) do
+          Buckets.copy(object.location.path, destination_path, dest_config)
+        else
+          with {:ok, data} <- Buckets.get(object.location.path, source_config) do
+            temp_object = %Object{
+              uuid: Ecto.UUID.generate(),
+              filename: object.filename,
+              data: {:data, data},
+              metadata: object.metadata,
+              location: %Location.NotConfigured{},
+              stored?: false
+            }
+
+            Buckets.put(temp_object, destination_path, dest_config)
+          end
+        end
+
+      case result do
+        {:ok, _meta} ->
+          new_object = %Object{
+            uuid: Ecto.UUID.generate(),
+            filename: Path.basename(destination_path),
+            data: nil,
+            metadata: object.metadata,
+            location: Location.new(destination_path, dest_config),
+            stored?: true
+          }
+
+          {:ok, new_object}
+
+        {:error, _reason} = error ->
+          error
+      end
+    end)
+  end
+
+  def copy!(module, %Object{} = object, destination_path, opts) do
+    case copy(module, object, destination_path, opts) do
+      {:ok, object} ->
+        object
+
+      {:error, reason} ->
+        raise """
+        Failed to copy object in `copy!/2` with reason:
+
+            #{inspect(reason)}
+        """
+    end
+  end
+
   ## Private
 
   defp default_object_location(module, object, config) do

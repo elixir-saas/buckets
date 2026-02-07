@@ -24,6 +24,9 @@ defmodule Buckets.Telemetry do
   * `[:buckets, :cloud, :load, :start]` - Emitted when a file load operation starts
   * `[:buckets, :cloud, :load, :stop]` - Emitted when a file load operation completes
   * `[:buckets, :cloud, :load, :exception]` - Emitted when a file load operation raises an exception
+  * `[:buckets, :cloud, :copy, :start]` - Emitted when a file copy operation starts
+  * `[:buckets, :cloud, :copy, :stop]` - Emitted when a file copy operation completes
+  * `[:buckets, :cloud, :copy, :exception]` - Emitted when a file copy operation raises an exception
   * `[:buckets, :cloud, :url, :start]` - Emitted when a URL generation operation starts
   * `[:buckets, :cloud, :url, :stop]` - Emitted when a URL generation operation completes
   * `[:buckets, :cloud, :url, :exception]` - Emitted when a URL generation operation raises an exception
@@ -39,6 +42,9 @@ defmodule Buckets.Telemetry do
   * `[:buckets, :adapter, :url, :start]` - Emitted when an adapter URL generation starts
   * `[:buckets, :adapter, :url, :stop]` - Emitted when an adapter URL generation completes
   * `[:buckets, :adapter, :url, :exception]` - Emitted when an adapter URL generation raises an exception
+  * `[:buckets, :adapter, :copy, :start]` - Emitted when an adapter copy operation starts
+  * `[:buckets, :adapter, :copy, :stop]` - Emitted when an adapter copy operation completes
+  * `[:buckets, :adapter, :copy, :exception]` - Emitted when an adapter copy operation raises an exception
   * `[:buckets, :adapter, :delete, :start]` - Emitted when an adapter delete operation starts
   * `[:buckets, :adapter, :delete, :stop]` - Emitted when an adapter delete operation completes
   * `[:buckets, :adapter, :delete, :exception]` - Emitted when an adapter delete operation raises an exception
@@ -112,6 +118,9 @@ defmodule Buckets.Telemetry do
             ~w(cloud load start)a,
             ~w(cloud load stop)a,
             ~w(cloud load exception)a,
+            ~w(cloud copy start)a,
+            ~w(cloud copy stop)a,
+            ~w(cloud copy exception)a,
             ~w(cloud url start)a,
             ~w(cloud url stop)a,
             ~w(cloud url exception)a,
@@ -124,6 +133,9 @@ defmodule Buckets.Telemetry do
             ~w(adapter url start)a,
             ~w(adapter url stop)a,
             ~w(adapter url exception)a,
+            ~w(adapter copy start)a,
+            ~w(adapter copy stop)a,
+            ~w(adapter copy exception)a,
             ~w(adapter delete start)a,
             ~w(adapter delete stop)a,
             ~w(adapter delete exception)a,

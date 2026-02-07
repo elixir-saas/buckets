@@ -161,6 +161,15 @@ defmodule Buckets.Adapters.GCS do
   end
 
   @impl true
+  def copy(source_path, destination_path, config) do
+    bucket = Keyword.fetch!(config, :bucket)
+
+    with {:ok, access_token} <- get_access_token(config) do
+      do_copy(access_token, bucket, source_path, destination_path)
+    end
+  end
+
+  @impl true
   def delete(remote_path, config) do
     bucket = Keyword.fetch!(config, :bucket)
 
@@ -230,6 +239,33 @@ defmodule Buckets.Adapters.GCS do
     case Req.get(url, headers: headers, params: params) do
       {:ok, %{status: 200, body: body}} ->
         {:ok, body}
+
+      {:ok, %{status: 404}} ->
+        {:error, :not_found}
+
+      {:ok, %{status: status, body: body}} ->
+        {:error, {:http_error, status, body}}
+
+      {:error, reason} ->
+        {:error, {:request_failed, reason}}
+    end
+  end
+
+  defp do_copy(access_token, bucket, source_name, destination_name) do
+    source_encoded = URI.encode(source_name, &URI.char_unreserved?/1)
+    dest_encoded = URI.encode(destination_name, &URI.char_unreserved?/1)
+
+    url =
+      "https://storage.googleapis.com/storage/v1/b/#{bucket}/o/#{source_encoded}/rewriteTo/b/#{bucket}/o/#{dest_encoded}"
+
+    headers = [
+      {"authorization", "Bearer #{access_token}"},
+      {"content-type", "application/json"}
+    ]
+
+    case Req.post(url, headers: headers, body: "{}") do
+      {:ok, %{status: status}} when status in 200..299 ->
+        {:ok, %{}}
 
       {:ok, %{status: 404}} ->
         {:error, :not_found}

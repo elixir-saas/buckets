@@ -181,7 +181,26 @@ defmodule Buckets.Adapter do
   @callback delete(binary(), Keyword.t()) ::
               {:ok, map()} | {:error, term()}
 
-  @optional_callbacks child_spec: 2
+  @doc """
+  Copies an object from one path to another within the same storage backend.
+
+  Takes the source path, destination path, and adapter configuration.
+  Returns `{:ok, metadata}` on success or `{:error, reason}` on failure.
+
+  This callback is optional. When not implemented by an adapter, the Cloud
+  layer will fall back to a get + put operation through the application.
+
+  ## Examples
+
+      def copy("uploads/old.pdf", "uploads/new.pdf", config) do
+        # Server-side copy logic here
+        {:ok, %{}}
+      end
+  """
+  @callback copy(binary(), binary(), Keyword.t()) ::
+              {:ok, map()} | {:error, term()}
+
+  @optional_callbacks child_spec: 2, copy: 3
 
   ## Helpers
 

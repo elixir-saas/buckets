@@ -137,6 +137,23 @@ defmodule Buckets do
   end
 
   @doc """
+  Delegates a `copy/3` function call to the configured `:adapter`.
+  """
+  def copy(source_path, destination_path, config) do
+    {adapter, config} = Keyword.pop!(config, :adapter)
+
+    metadata = %{
+      adapter: adapter,
+      source_path: source_path,
+      destination_path: destination_path
+    }
+
+    Telemetry.span([:buckets, :adapter, :copy], metadata, fn ->
+      adapter.copy(source_path, destination_path, config)
+    end)
+  end
+
+  @doc """
   Delegates a `delete/2` function call to the configured `:adapter`.
   """
   def delete(remote_path, config) do

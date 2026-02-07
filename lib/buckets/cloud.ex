@@ -163,6 +163,26 @@ defmodule Buckets.Cloud do
             ) :: {:ok, map()} | {:error, term()}
 
   @doc """
+  Copies a `Buckets.Object` to a new destination path.
+
+  When the source and destination use the same adapter and bucket, performs a
+  native server-side copy. Otherwise, falls back to downloading and re-uploading
+  through the application.
+  """
+  @callback copy(
+              object :: Buckets.Object.t(),
+              destination_path :: String.t()
+            ) :: {:ok, Buckets.Object.t()} | {:error, term()}
+
+  @doc """
+  Same as `c:copy/2` but returns the object or raises if there is an error.
+  """
+  @callback copy!(
+              object :: Buckets.Object.t(),
+              destination_path :: String.t()
+            ) :: Buckets.Object.t()
+
+  @doc """
   Same as `c:insert/2` but returns the object or raises if there is an error.
   """
   @callback insert!(
@@ -240,6 +260,14 @@ defmodule Buckets.Cloud do
 
       def delete(object) do
         Buckets.Cloud.Operations.delete(object)
+      end
+
+      def copy(object, destination_path) do
+        Buckets.Cloud.Operations.copy(__MODULE__, object, destination_path, [])
+      end
+
+      def copy!(object, destination_path) do
+        Buckets.Cloud.Operations.copy!(__MODULE__, object, destination_path, [])
       end
 
       def read(object) do

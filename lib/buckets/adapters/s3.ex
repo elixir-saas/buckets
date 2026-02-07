@@ -165,6 +165,21 @@ defmodule Buckets.Adapters.S3 do
   end
 
   @impl true
+  def copy(source_path, destination_path, config) do
+    req = build_req(config)
+    bucket = Keyword.fetch!(config, :bucket)
+
+    case Req.put(req,
+           url: "s3://#{bucket}/#{destination_path}",
+           headers: [{"x-amz-copy-source", "/#{bucket}/#{source_path}"}]
+         ) do
+      {:ok, %{status: status}} when status in 200..299 -> {:ok, %{}}
+      {:ok, response} -> {:error, response}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  @impl true
   def delete(remote_path, config) do
     req = build_req(config)
     bucket = Keyword.fetch!(config, :bucket)

@@ -112,6 +112,17 @@ defmodule Buckets.Adapters.Volume do
   end
 
   @impl true
+  def copy(source_path, destination_path, config) do
+    source = target_path(source_path, config)
+    destination = target_path(destination_path, config)
+
+    with :ok <- File.mkdir_p(Path.dirname(destination)),
+         :ok <- File.cp(source, destination) do
+      {:ok, %{}}
+    end
+  end
+
+  @impl true
   def delete(remote_path, config) do
     File.rm(target_path(remote_path, config))
     {:ok, %{}}
